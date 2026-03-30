@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+/*
+ * Três paletas para experimentação; combinar com next-themes (claro/escuro).
+ * Valores alinhados às cores pedidas; ajustes finos com utilitários Tailwind.
+ */
+
+html[data-palette="navy"]:not(.dark) {
+  --app-bg: #e2e8f0;
+  --app-surface: #f8fafc;
+  --app-surface-elevated: #ffffff;
+  --app-accent: #d97706;
+  --app-accent-secondary: #f59e0b;
+  --app-text: #0f172a;
+  --app-muted: #64748b;
+  --app-border: #cbd5e1;
+}
+
+html[data-palette="navy"].dark {
+  --app-bg: #0f172a;
+  --app-surface: #1e293b;
+  --app-surface-elevated: #334155;
+  --app-accent: #f59e0b;
+  --app-accent-secondary: #fbbf24;
+  --app-text: #f8fafc;
+  --app-muted: #94a3b8;
+  --app-border: color-mix(in srgb, #f8fafc 14%, transparent);
+}
+
+html[data-palette="pearl"]:not(.dark) {
+  --app-bg: #f3f4f6;
+  --app-surface: #ffffff;
+  --app-surface-elevated: #ffffff;
+  --app-accent: #d97706;
+  --app-accent-secondary: #ea580c;
+  --app-text: #374151;
+  --app-muted: #6b7280;
+  --app-border: #e5e7eb;
+}
+
+html[data-palette="pearl"].dark {
+  --app-bg: #111827;
+  --app-surface: #1f2937;
+  --app-surface-elevated: #374151;
+  --app-accent: #f59e0b;
+  --app-accent-secondary: #fbbf24;
+  --app-text: #f3f4f6;
+  --app-muted: #9ca3af;
+  --app-border: #374151;
+}
+
+html[data-palette="forest"]:not(.dark) {
+  --app-bg: #ecfdf5;
+  --app-surface: #ffffff;
+  --app-surface-elevated: #fef3c7;
+  --app-accent: #064e3b;
+  --app-accent-secondary: #10b981;
+  --app-text: #064e3b;
+  --app-muted: #047857;
+  --app-border: #a7f3d0;
+}
+
+html[data-palette="forest"].dark {
+  --app-bg: #064e3b;
+  --app-surface: #022c22;
+  --app-surface-elevated: #14532d;
+  --app-accent: #fef3c7;
+  --app-accent-secondary: #10b981;
+  --app-text: #fef3c7;
+  --app-muted: #6ee7b7;
+  --app-border: color-mix(in srgb, #10b981 35%, transparent);
+}
+
+@theme inline {
+  --color-app-bg: var(--app-bg);
+  --color-app-surface: var(--app-surface);
+  --color-app-surface-elevated: var(--app-surface-elevated);
+  --color-app-accent: var(--app-accent);
+  --color-app-accent-secondary: var(--app-accent-secondary);
+  --color-app-text: var(--app-text);
+  --color-app-muted: var(--app-muted);
+  --color-app-border: var(--app-border);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background-color: var(--app-bg);
+  color: var(--app-text);
+}

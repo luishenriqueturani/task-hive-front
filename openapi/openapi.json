@@ -1,0 +1,40 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Task Hive API",
+    "version": "1.0.0",
+    "description": "Especificação de placeholder. Substitua pelo JSON OpenAPI exportado do Swagger do backend (ex.: /v3/api-docs)."
+  },
+  "servers": [
+    {
+      "url": "http://orangepi.local:8080",
+      "description": "Backend local"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": ["Health"],
+        "operationId": "healthCheck",
+        "summary": "Health check (stub para codegen)",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

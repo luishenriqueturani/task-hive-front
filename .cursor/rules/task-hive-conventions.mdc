@@ -1,0 +1,13 @@
+---
+description: Convenções obrigatórias do Task Hive (frontend Trello-like)
+alwaysApply: true
+---
+
+# Task Hive — convenções do projeto
+
+- **Idioma**: código (identificadores, strings de UI em inglês se o produto for bilíngue — aqui preferir inglês no código); comentários e documentação em **português**.
+- **Tamanho de componentes**: máximo **600 linhas** por ficheiro de componente; se ultrapassar, extrair subcomponentes ou avisar o utilizador para decidir.
+- **Estado local**: máximo **5 `useState`** por componente; com mais estado, usar **`useReducer`** (ou avisar que o limite foi excedido).
+- **Performance**: preferir `useMemo`, `useCallback`, `memo` e APIs do Next.js com bom custo/benefício quando houver custo real mensurável.
+- **Segurança e SSR**: **nunca** expor tokens de sessão ao navegador (evitar `localStorage` para auth); usar **cookies httpOnly** definidos em **Route Handlers** / servidor; chamadas autenticadas preferencialmente via **BFF** (`/api/bff`). Manter práticas rigorosas de segurança (headers, validação, sem vazar segredos em `NEXT_PUBLIC_*`).
+- **Estado global**: quando um valor for partilhido por muitas áreas, avaliar **Context API** (ou composição) antes de prop drilling profundo.
