@@ -1,4 +1,3 @@
-import { PaletteSwitcher } from "@/components/theme/palette-switcher";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 export default function Home() {
@@ -21,10 +20,7 @@ export default function Home() {
             Boards & tasks
           </h1>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <PaletteSwitcher />
-          <ThemeToggle />
-        </div>
+        <ThemeToggle />
       </header>
 
       <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 py-16">
@@ -33,16 +29,12 @@ export default function Home() {
             Project scaffold
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-app-muted">
-            Next.js, TypeScript, Tailwind, Orval + React Query, temas claro/escuro
-            e três paletas. Configure{" "}
+            Next.js, TypeScript, Tailwind, Orval + React Query e tema Soft Pearl
+            (claro/escuro). Configure{" "}
             <code className="rounded bg-app-surface-elevated/80 px-1.5 py-0.5 font-mono text-xs text-app-text">
               BACKEND_API_BASE_URL
             </code>{" "}
-            e substitua{" "}
-            <code className="rounded bg-app-surface-elevated/80 px-1.5 py-0.5 font-mono text-xs text-app-text">
-              openapi/openapi.json
-            </code>{" "}
-            pelo OpenAPI real; depois rode{" "}
+            no BFF; gere o cliente com{" "}
             <code className="rounded bg-app-surface-elevated/80 px-1.5 py-0.5 font-mono text-xs text-app-text">
               npm run api:generate
             </code>

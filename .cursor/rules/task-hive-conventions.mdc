@@ -5,6 +5,7 @@ alwaysApply: true
 
 # Task Hive — convenções do projeto
 
+- **Tema visual**: apenas **Soft Pearl** (claro/escuro com `next-themes`); não reintroduzir outras paletas sem decisão explícita.
 - **Idioma**: código (identificadores, strings de UI em inglês se o produto for bilíngue — aqui preferir inglês no código); comentários e documentação em **português**.
 - **Tamanho de componentes**: máximo **600 linhas** por ficheiro de componente; se ultrapassar, extrair subcomponentes ou avisar o utilizador para decidir.
 - **Estado local**: máximo **5 `useState`** por componente; com mais estado, usar **`useReducer`** (ou avisar que o limite foi excedido).

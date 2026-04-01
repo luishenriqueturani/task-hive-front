@@ -3,10 +3,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { useState, type ReactNode } from "react";
-import { PaletteProvider } from "./palette-context";
 
 /**
- * Client providers: React Query, tema claro/escuro (next-themes) e paleta visual.
+ * Client providers: React Query e tema claro/escuro (next-themes), paleta Soft Pearl em CSS.
  */
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -29,7 +28,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         enableSystem
         disableTransitionOnChange
       >
-        <PaletteProvider>{children}</PaletteProvider>
+        {children}
       </ThemeProvider>
     </QueryClientProvider>
   );

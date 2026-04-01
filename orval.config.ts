@@ -13,6 +13,7 @@ export default defineConfig({
       schemas: "./src/api/model",
       client: "react-query",
       prettier: true,
+      clean: true,
       override: {
         mutator: {
           path: "./src/api/mutator.ts",
