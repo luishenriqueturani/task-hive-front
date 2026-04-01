@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Task Hive",
-  description: "Quadros e tarefas — cliente web",
+  description: "Quadros, tarefas e tempo — organize o trabalho da sua equipe.",
 };
 
 export default function RootLayout({

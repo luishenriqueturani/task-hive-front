@@ -5,7 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { useState, type ReactNode } from "react";
 
 /**
- * Client providers: React Query e tema claro/escuro (next-themes), paleta Soft Pearl em CSS.
+ * Provedores do cliente: React Query e tema claro/escuro (next-themes); paleta Soft Pearl no CSS.
  */
 export function AppProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
