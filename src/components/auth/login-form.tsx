@@ -1,33 +1,64 @@
 "use client";
 
-import { useAuthControllerLogin } from "@/api/generated/auth/auth";
+import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
+/** Extrai mensagem legível do corpo de erro do backend (formato Nest). */
+async function readErrorMessage(res: Response): Promise<string> {
+  const fallback = "Não foi possível entrar. Verifique seu e-mail e sua senha.";
+  try {
+    const body = (await res.json()) as { message?: string | string[] };
+    if (Array.isArray(body.message)) return body.message.join(" ");
+    return body.message || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+async function loginRequest(data: { email: string; password: string }) {
+  const res = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res));
+  }
+}
+
+/** Só aceita caminhos internos para evitar open redirect via `?next=`. */
+function safeNextPath(nextPath?: string): string {
+  if (nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//")) {
+    return nextPath;
+  }
+  return "/";
+}
+
 /**
- * Formulário de login (e-mail e senha). Em caso de sucesso, redireciona à raiz;
- * sessão em cookie httpOnly será tratada no BFF.
+ * Formulário de login (e-mail e senha). O BFF (`/api/auth/login`) guarda a
+ * sessão em cookie httpOnly; em caso de sucesso, redireciona a `nextPath`.
  */
-export function LoginForm() {
+export function LoginForm({ nextPath }: { nextPath?: string }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
-  const login = useAuthControllerLogin({
-    mutation: {
-      onSuccess: () => {
-        setFormError(null);
-        router.push("/");
-        router.refresh();
-      },
-      onError: (err: unknown) => {
-        const msg =
-          err instanceof Error && err.message
-            ? err.message
-            : "Não foi possível entrar. Verifique seu e-mail e sua senha.";
-        setFormError(msg);
-      },
+  const login = useMutation({
+    mutationFn: loginRequest,
+    onSuccess: () => {
+      setFormError(null);
+      router.push(safeNextPath(nextPath));
+      router.refresh();
+    },
+    onError: (err: unknown) => {
+      const msg =
+        err instanceof Error && err.message
+          ? err.message
+          : "Não foi possível entrar. Verifique seu e-mail e sua senha.";
+      setFormError(msg);
     },
   });
 
@@ -39,7 +70,7 @@ export function LoginForm() {
         setFormError("Preencha o e-mail e a senha.");
         return;
       }
-      login.mutate({ data: { email: email.trim(), password } });
+      login.mutate({ email: email.trim(), password });
     },
     [email, password, login],
   );

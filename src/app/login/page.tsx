@@ -6,6 +6,11 @@ export const metadata: Metadata = {
   description: "Faça login na sua conta Task Hive.",
 };
 
-export default function LoginPage() {
-  return <LoginView />;
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  return <LoginView nextPath={next} />;
 }

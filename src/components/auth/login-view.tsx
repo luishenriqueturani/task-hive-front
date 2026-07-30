@@ -8,7 +8,7 @@ import { LoginForm } from "./login-form";
 /**
  * Layout da página de login: fundo, logo e alternância de tema no topo; conteúdo em duas colunas.
  */
-export function LoginView() {
+export function LoginView({ nextPath }: { nextPath?: string }) {
   return (
     <div className="relative flex min-h-full flex-1 flex-col overflow-hidden bg-app-bg">
       <AmbientBackground />
@@ -53,7 +53,7 @@ export function LoginView() {
           </section>
 
           <section className="flex justify-center lg:justify-end">
-            <LoginForm />
+            <LoginForm nextPath={nextPath} />
           </section>
         </div>
       </main>

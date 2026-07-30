@@ -1,19 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
+import { backendBase } from "@/lib/backend";
+import { getSessionToken } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 const PATH_SAFE = /^[a-zA-Z0-9/_-]+$/;
 
-function backendBase(): string | null {
-  const raw = process.env.BACKEND_API_BASE_URL?.trim();
-  if (!raw) return null;
-  return raw.replace(/\/$/, "");
-}
+/**
+ * Login e logout têm Route Handlers dedicados (/api/auth/*) que gerem o
+ * cookie httpOnly; pelo proxy genérico a sessão nunca seria estabelecida.
+ */
+const BLOCKED_PATHS = new Set(["auth/login", "auth/logout"]);
 
 async function proxy(request: NextRequest, segments: string[]) {
   const joined = segments.join("/");
   if (!joined || !PATH_SAFE.test(joined) || joined.includes("..")) {
     return NextResponse.json({ error: "Invalid path" }, { status: 400 });
+  }
+
+  if (BLOCKED_PATHS.has(joined)) {
+    return NextResponse.json(
+      { error: `Use /api/${joined} em vez do proxy genérico.` },
+      { status: 404 },
+    );
   }
 
   const base = backendBase();
@@ -28,8 +37,8 @@ async function proxy(request: NextRequest, segments: string[]) {
   const targetUrl = `${base}/${joined}${src.search}`;
 
   const forward: Record<string, string> = {};
-  const cookie = request.headers.get("cookie");
-  if (cookie) forward.cookie = cookie;
+  const token = await getSessionToken();
+  if (token) forward.authorization = `Bearer ${token}`;
   const accept = request.headers.get("accept");
   if (accept) forward.accept = accept;
 
