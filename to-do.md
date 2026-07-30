@@ -71,10 +71,10 @@ Objetivo: CRUD de projetos e quadro kanban funcional (core do produto).
 
 ### 3.1 Projetos
 
-- [ ] **Listagem:** `/projects` — cards ou tabela com nome, descrição, data; filtrar por dono/participante (API já filtra).
-- [ ] **Criar projeto:** modal ou página `/projects/new` (`POST /projects`).
-- [ ] **Detalhe / editar:** `/projects/[id]` — metadados, participantes, link para o quadro.
-- [ ] **Eliminar:** soft delete com confirmação (`PATCH /projects/:id` ou `DELETE` conforme API).
+- [x] **Listagem:** `/projects` — grade de cards (nome, descrição, nº de participantes, data) com filtro por dono/participante feito pela API.
+- [x] **Criar projeto:** modal "Novo projeto" na própria `/projects` (`POST /projects`) — modal genérico em `src/components/ui/modal.tsx` (portal no body).
+- [x] **Detalhe / editar:** `/projects/[id]` — metadados, chips de participantes e edição via o mesmo modal (`PATCH /projects/:id`). Nota: `GET /projects/:id` não carrega relações nem valida acesso, então o detalhe reutiliza o cache da listagem (`GET /projects`). Link para o quadro fica como placeholder até a Fase 3.4.
+- [x] **Eliminar:** `DELETE /projects/:id` (soft delete no backend) com modal de confirmação; botões Editar/Excluir só aparecem para dono/admin (`canManageProject` espelhado em `src/lib/projects-api.ts`).
 
 ### 3.2 Participantes
 

@@ -7,7 +7,7 @@ import type { SessionUser } from "@/lib/session";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Painel", ready: true },
-  { href: "/projects", label: "Projetos", ready: false },
+  { href: "/projects", label: "Projetos", ready: true },
   { href: "/to-do", label: "Tarefas avulsas", ready: false },
 ];
 
