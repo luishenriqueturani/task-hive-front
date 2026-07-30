@@ -29,7 +29,7 @@ export function proxy(request: NextRequest) {
   const hasSession = request.cookies.has(SESSION_COOKIE);
 
   if (GUEST_ONLY_PATHS.includes(pathname) && hasSession) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   const isProtected = PROTECTED_PREFIXES.some(

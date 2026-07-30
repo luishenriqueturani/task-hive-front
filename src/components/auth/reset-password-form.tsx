@@ -80,7 +80,7 @@ export function ResetPasswordForm({ token }: { token?: string }) {
     mutationFn: resetPasswordRequest,
     onSuccess: () => {
       setFormError(null);
-      router.push("/");
+      router.push("/dashboard");
       router.refresh();
     },
     onError: (err: unknown) => {

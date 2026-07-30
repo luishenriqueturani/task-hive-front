@@ -34,7 +34,7 @@ function safeNextPath(nextPath?: string): string {
   if (nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//")) {
     return nextPath;
   }
-  return "/";
+  return "/dashboard";
 }
 
 /**

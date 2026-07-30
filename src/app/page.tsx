@@ -1,9 +1,16 @@
 import { AppLogo } from "@/components/brand/app-logo";
 import { AmbientBackground } from "@/components/layout/ambient-background";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { getSessionUser } from "@/lib/session";
 import Link from "next/link";
 
-export default function Home() {
+/**
+ * Landing pública (futura página promocional). Quem já tem sessão vê o
+ * atalho para o painel em vez de "Entrar".
+ */
+export default async function Home() {
+  const user = await getSessionUser();
+
   return (
     <div className="relative flex flex-1 flex-col overflow-hidden bg-app-bg">
       <AmbientBackground />
@@ -12,10 +19,10 @@ export default function Home() {
         <AppLogo />
         <div className="flex flex-wrap items-center gap-3">
           <Link
-            href="/login"
+            href={user ? "/dashboard" : "/login"}
             className="rounded-lg border border-app-border bg-app-surface/80 px-2 py-1.5 text-sm font-medium text-app-text backdrop-blur-md transition hover:bg-app-surface-elevated/90 sm:px-3 sm:py-2"
           >
-            Entrar
+            {user ? "Abrir painel" : "Entrar"}
           </Link>
           <ThemeToggle />
         </div>

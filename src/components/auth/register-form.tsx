@@ -59,7 +59,7 @@ export function RegisterForm() {
     mutationFn: registerRequest,
     onSuccess: ({ autoLogin }) => {
       setFormError(null);
-      router.push(autoLogin ? "/" : "/login");
+      router.push(autoLogin ? "/dashboard" : "/login");
       router.refresh();
     },
     onError: (err: unknown) => {

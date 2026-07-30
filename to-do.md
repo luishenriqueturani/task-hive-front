@@ -40,7 +40,7 @@ Objetivo: utilizador consegue entrar, manter sessão e sair com segurança.
 ### 1.2 Rotas protegidas
 
 - [x] **Guard de rotas:** `src/proxy.ts` (ex-middleware no Next.js 16) — redireciona `/login` se já autenticado; redireciona rotas privadas (`/projects`, `/to-do`, `/companies`, `/settings`, `/dashboard`) para `/login?next=...` se sem sessão.
-- [ ] **Layout autenticado:** `(app)` ou `(dashboard)` com shell comum (header, nav, logout).
+- [x] **Layout autenticado:** grupo `(app)` com `AppHeader` (logo, nav, usuário, tema, logout); valida a sessão server-side além do guard.
 - [x] **Obter utilizador actual:** endpoint BFF `GET /api/auth/me` (decodifica o payload do JWT da sessão server-side; validade real do token continua garantida pelo backend).
 
 ### 1.3 Fluxos de auth complementares
@@ -57,11 +57,11 @@ Objetivo: utilizador consegue entrar, manter sessão e sair com segurança.
 
 Objetivo: estrutura visual estilo Trello, reutilizável em todas as áreas.
 
-- [ ] **Layout dashboard:** sidebar ou top-nav com links — Projetos, To-do, (futuro: Empresas, Definições).
-- [ ] **Header global:** logo, nome do utilizador, toggle tema, botão sair.
-- [ ] **Estados vazios e loading:** skeletons/spinners consistentes com o tema Soft Pearl.
+- [x] **Layout dashboard:** top-nav no `AppHeader` — Painel activo; Projetos e Tarefas avulsas marcados "Em breve" até as telas existirem.
+- [x] **Header global:** logo, nome do utilizador, toggle tema, botão sair (`LogoutButton`).
+- [x] **Estados vazios e loading:** `CardSkeleton` e `CardNotice` nos cards do dashboard (padrão a estender às próximas telas).
 - [ ] **Toasts / feedback:** confirmações de acção (criar, editar, eliminar) — avaliar biblioteca leve ou componente próprio.
-- [ ] **Página inicial autenticada:** redirecionar `/` para `/projects` (ou dashboard resumo).
+- [x] **Página inicial autenticada:** decisão — `/` fica como landing promocional (mostra "Abrir painel" quando logado); login/cadastro/reset redirecionam para **`/dashboard`** (resumo com projetos, tarefas avulsas e perfil).
 
 ---
 
