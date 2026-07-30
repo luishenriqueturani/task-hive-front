@@ -45,10 +45,11 @@ Objetivo: utilizador consegue entrar, manter sessão e sair com segurança.
 
 ### 1.3 Fluxos de auth complementares
 
-- [ ] **Registo:** página `/register` + formulário (`POST /users`).
-- [ ] **Esqueci a senha:** `/forgot-password` → `POST /auth/forget-password`.
-- [ ] **Redefinir senha:** `/reset-password?token=...` → `check-token` + `reset-password`.
-- [ ] **Mensagens de erro** em pt-BR (validação, credenciais inválidas, token expirado).
+- [x] **Registo:** página `/register` + formulário (`POST /users` com `confirmPassword`); faz login automático após criar a conta.
+- [x] **Esqueci a senha:** `/forgot-password` → `POST /auth/forget-password`; link "Esqueceu a senha?" no formulário de login.
+- [x] **Redefinir senha:** `/reset-password?token=...` → `check-token` na carga + `POST /api/auth/reset-password` (Route Handler dedicado que grava a nova sessão no cookie httpOnly).
+- [x] **Mensagens de erro** em pt-BR: `src/lib/api-error.ts` traduz as mensagens do class-validator (senha fraca, senhas diferentes, e-mail/token inválido, etc.).
+  - Nota: o backend ainda não envia o e-mail de redefinição (Fase 5 do backend); o token fica na tabela `ForgetPassword`. O fluxo feliz completo do reset só é testável obtendo o token no banco.
 
 ---
 

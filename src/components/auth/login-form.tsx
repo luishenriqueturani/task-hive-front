@@ -1,20 +1,16 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
-
-/** Extrai mensagem legível do corpo de erro do backend (formato Nest). */
-async function readErrorMessage(res: Response): Promise<string> {
-  const fallback = "Não foi possível entrar. Verifique seu e-mail e sua senha.";
-  try {
-    const body = (await res.json()) as { message?: string | string[] };
-    if (Array.isArray(body.message)) return body.message.join(" ");
-    return body.message || fallback;
-  } catch {
-    return fallback;
-  }
-}
+import { readApiErrorMessage } from "@/lib/api-error";
+import {
+  FormError,
+  FormField,
+  PasswordField,
+  SubmitButton,
+} from "./form-field";
 
 async function loginRequest(data: { email: string; password: string }) {
   const res = await fetch("/api/auth/login", {
@@ -24,7 +20,12 @@ async function loginRequest(data: { email: string; password: string }) {
   });
 
   if (!res.ok) {
-    throw new Error(await readErrorMessage(res));
+    throw new Error(
+      await readApiErrorMessage(
+        res,
+        "Não foi possível entrar. Verifique seu e-mail e sua senha.",
+      ),
+    );
   }
 }
 
@@ -54,16 +55,16 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
       router.refresh();
     },
     onError: (err: unknown) => {
-      const msg =
+      setFormError(
         err instanceof Error && err.message
           ? err.message
-          : "Não foi possível entrar. Verifique seu e-mail e sua senha.";
-      setFormError(msg);
+          : "Não foi possível entrar. Verifique seu e-mail e sua senha.",
+      );
     },
   });
 
   const onSubmit = useCallback(
-    (e: React.FormEvent) => {
+    (e: React.SubmitEvent<HTMLFormElement>) => {
       e.preventDefault();
       setFormError(null);
       if (!email.trim() || !password) {
@@ -85,63 +86,55 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
       </p>
 
       <form className="mt-4 space-y-2 sm:mt-8 sm:space-y-5" onSubmit={onSubmit} noValidate>
-        {formError ? (
-          <p
-            className="rounded-lg border border-red-500/40 bg-red-500/10 px-2 py-1.5 text-sm text-red-700 dark:text-red-200 sm:px-3 sm:py-2"
-            role="alert"
-          >
-            {formError}
-          </p>
-        ) : null}
+        <FormError message={formError} />
+
+        <FormField
+          id="login-email"
+          label="E-mail"
+          name="email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="você@empresa.com.br"
+          disabled={pending}
+          aria-invalid={!!formError}
+        />
 
         <div>
-          <label
-            htmlFor="login-email"
-            className="block text-sm font-medium text-app-text"
-          >
-            E-mail
-          </label>
-          <input
-            id="login-email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-app-border bg-app-surface px-2 py-2 text-app-text shadow-sm outline-none transition placeholder:text-app-muted focus:border-app-accent focus:ring-2 focus:ring-app-accent/25 sm:mt-1.5 sm:px-3 sm:py-2.5"
-            placeholder="você@empresa.com.br"
-            disabled={pending}
-            aria-invalid={!!formError}
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="login-password"
-            className="block text-sm font-medium text-app-text"
-          >
-            Senha
-          </label>
-          <input
+          <PasswordField
             id="login-password"
+            label="Senha"
             name="password"
-            type="password"
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-app-border bg-app-surface px-2 py-2 text-app-text shadow-sm outline-none transition placeholder:text-app-muted focus:border-app-accent focus:ring-2 focus:ring-app-accent/25 sm:mt-1.5 sm:px-3 sm:py-2.5"
             placeholder="••••••••"
             disabled={pending}
           />
+          <p className="mt-1.5 text-right text-sm">
+            <Link
+              href="/forgot-password"
+              className="font-medium text-app-accent hover:underline"
+            >
+              Esqueceu a senha?
+            </Link>
+          </p>
         </div>
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="w-full rounded-lg bg-app-accent px-3 py-2 text-sm font-semibold text-white shadow-md transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:py-3"
-        >
-          {pending ? "Entrando…" : "Entrar"}
-        </button>
+        <SubmitButton pending={pending} pendingLabel="Entrando…">
+          Entrar
+        </SubmitButton>
+
+        <p className="text-center text-sm text-app-muted">
+          Não tem uma conta?{" "}
+          <Link
+            href="/register"
+            className="font-medium text-app-accent hover:underline"
+          >
+            Cadastre-se
+          </Link>
+        </p>
       </form>
     </div>
   );

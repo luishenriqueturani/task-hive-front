@@ -18,11 +18,17 @@ const PROTECTED_PREFIXES = [
   "/dashboard",
 ];
 
+/**
+ * Autenticado não precisa destas páginas. `/reset-password` fica de fora:
+ * o fluxo cria uma nova sessão e deve funcionar mesmo com cookie presente.
+ */
+const GUEST_ONLY_PATHS = ["/login", "/register", "/forgot-password"];
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSession = request.cookies.has(SESSION_COOKIE);
 
-  if (pathname === "/login" && hasSession) {
+  if (GUEST_ONLY_PATHS.includes(pathname) && hasSession) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
@@ -42,6 +48,8 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/login",
+    "/register",
+    "/forgot-password",
     "/projects/:path*",
     "/to-do/:path*",
     "/companies/:path*",

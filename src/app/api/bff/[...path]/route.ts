@@ -7,10 +7,15 @@ export const dynamic = "force-dynamic";
 const PATH_SAFE = /^[a-zA-Z0-9/_-]+$/;
 
 /**
- * Login e logout têm Route Handlers dedicados (/api/auth/*) que gerem o
- * cookie httpOnly; pelo proxy genérico a sessão nunca seria estabelecida.
+ * Login, logout e reset de senha têm Route Handlers dedicados (/api/auth/*)
+ * que gerem o cookie httpOnly; pelo proxy genérico a sessão nunca seria
+ * estabelecida e o token vazaria ao navegador.
  */
-const BLOCKED_PATHS = new Set(["auth/login", "auth/logout"]);
+const BLOCKED_PATHS = new Set([
+  "auth/login",
+  "auth/logout",
+  "auth/reset-password",
+]);
 
 async function proxy(request: NextRequest, segments: string[]) {
   const joined = segments.join("/");
