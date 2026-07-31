@@ -5,7 +5,12 @@ import { useRouter } from "next/navigation";
 import { FaRightFromBracket } from "react-icons/fa6";
 
 /** Encerra a sessão via BFF (limpa o cookie httpOnly) e volta ao login. */
-export function LogoutButton() {
+export function LogoutButton({
+  variant = "compact",
+}: {
+  /** `panel` — largura total no rodapé do drawer de perfil. */
+  variant?: "compact" | "panel";
+}) {
   const router = useRouter();
 
   const logout = useMutation({
@@ -18,18 +23,21 @@ export function LogoutButton() {
     },
   });
 
+  const className =
+    variant === "panel"
+      ? "flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-app-border bg-app-surface/80 px-3 py-2.5 text-sm font-medium text-app-text transition hover:bg-app-surface-elevated/90 disabled:cursor-not-allowed disabled:opacity-60"
+      : "flex cursor-pointer items-center gap-2 rounded-lg border border-app-border bg-app-surface/80 px-2 py-1.5 text-sm font-medium text-app-text backdrop-blur-md transition hover:bg-app-surface-elevated/90 disabled:cursor-not-allowed disabled:opacity-60 sm:px-3 sm:py-2";
+
   return (
     <button
       type="button"
       onClick={() => logout.mutate()}
       disabled={logout.isPending}
-      className="flex cursor-pointer items-center gap-2 rounded-lg border border-app-border bg-app-surface/80 px-2 py-1.5 text-sm font-medium text-app-text backdrop-blur-md transition hover:bg-app-surface-elevated/90 disabled:cursor-not-allowed disabled:opacity-60 sm:px-3 sm:py-2"
+      className={className}
       aria-label="Sair da conta"
     >
       <FaRightFromBracket className="h-4 w-4" aria-hidden />
-      <span className="hidden sm:inline">
-        {logout.isPending ? "Saindo…" : "Sair"}
-      </span>
+      <span>{logout.isPending ? "Saindo…" : "Sair"}</span>
     </button>
   );
 }

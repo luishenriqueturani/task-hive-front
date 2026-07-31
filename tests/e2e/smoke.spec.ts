@@ -60,7 +60,8 @@ test.describe("smoke Task Hive", () => {
     await expect(page).toHaveURL(/\/projects\/\d+/);
     await expect(page.getByRole("heading", { name: "Projeto Smoke" })).toBeVisible();
 
-    await page.getByRole("button", { name: /Editar/i }).click();
+    await page.getByRole("button", { name: "Mais ações do projeto" }).click();
+    await page.getByRole("menuitem", { name: "Editar" }).click();
     const editDialog = page.getByRole("dialog", { name: "Editar projeto" });
     await expect(editDialog).toBeVisible();
     await editDialog.getByLabel("Nome").fill("Projeto Smoke v2");
@@ -70,7 +71,8 @@ test.describe("smoke Task Hive", () => {
       page.getByRole("heading", { name: "Projeto Smoke v2" }),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: /Excluir/i }).click();
+    await page.getByRole("button", { name: "Mais ações do projeto" }).click();
+    await page.getByRole("menuitem", { name: "Excluir" }).click();
     const deleteDialog = page.getByRole("dialog", { name: "Excluir projeto" });
     await expect(deleteDialog).toBeVisible();
     await deleteDialog.getByRole("button", { name: "Excluir projeto" }).click();
@@ -81,8 +83,143 @@ test.describe("smoke Task Hive", () => {
     ).toBeVisible();
   });
 
+  test("kanban: criar, mover e excluir tarefa", async ({ page }) => {
+    await login(page);
+    await page.goto("/projects");
+
+    await page.getByRole("button", { name: /Novo projeto/i }).click();
+    const createProject = page.getByRole("dialog", { name: "Novo projeto" });
+    await createProject.getByLabel("Nome").fill("Projeto Kanban");
+    await createProject.getByRole("button", { name: "Criar projeto" }).click();
+    await expect(createProject).toBeHidden();
+
+    await page.getByRole("link", { name: /Projeto Kanban/i }).click();
+
+    await page.getByRole("button", { name: /^Adicionar coluna$/ }).click();
+    await page.getByLabel("Nome da coluna").fill("A fazer");
+    await page.getByRole("button", { name: "Criar coluna" }).click();
+    await expect(page.getByText("A fazer").first()).toBeVisible();
+
+    await page.getByRole("button", { name: /^Adicionar coluna$/ }).click();
+    await page.getByLabel("Nome da coluna").fill("Feito");
+    await page.getByRole("button", { name: "Criar coluna" }).click();
+
+    await page
+      .getByRole("button", { name: /Nova tarefa em A fazer/i })
+      .click();
+    const taskDialog = page.getByRole("dialog", { name: "Nova tarefa" });
+    await taskDialog.getByLabel("Título").fill("Tarefa smoke");
+    await taskDialog.getByRole("button", { name: "Criar tarefa" }).click();
+    await expect(page.getByText("Tarefa smoke")).toBeVisible();
+
+    await page
+      .getByRole("button", { name: /Mover Tarefa smoke para a próxima coluna/i })
+      .click();
+
+    await page.getByText("Tarefa smoke").click();
+    const detail = page.getByRole("dialog", { name: "Detalhe da tarefa" });
+    await expect(detail).toBeVisible();
+
+    await detail.getByLabel("Nome da nova subtarefa").fill("Checklist smoke");
+    await detail.getByRole("button", { name: "Adicionar subtarefa" }).click();
+    await expect(detail.getByText("Checklist smoke")).toBeVisible();
+    await detail
+      .getByRole("button", { name: /Concluir Checklist smoke/i })
+      .click();
+    await expect(detail.getByText("1/1 concluídas")).toBeVisible();
+
+    await detail.getByRole("button", { name: /^Excluir$/ }).click();
+    await page
+      .getByRole("dialog", { name: "Excluir tarefa" })
+      .getByRole("button", { name: "Excluir tarefa" })
+      .click();
+    await expect(page.getByText("Tarefa smoke")).toHaveCount(0);
+  });
+
+  test("dono gere colunas do projeto", async ({ page }) => {
+    await login(page);
+    await page.goto("/projects");
+
+    await page.getByRole("button", { name: /Novo projeto/i }).click();
+    const createDialog = page.getByRole("dialog", { name: "Novo projeto" });
+    await createDialog.getByLabel("Nome").fill("Projeto Colunas");
+    await createDialog.getByRole("button", { name: "Criar projeto" }).click();
+    await expect(createDialog).toBeHidden();
+
+    await page.getByRole("link", { name: /Projeto Colunas/i }).click();
+    await page.getByRole("button", { name: /^Adicionar coluna$/ }).click();
+    await page.getByLabel("Nome da coluna").fill("A fazer");
+    await page.getByRole("button", { name: "Criar coluna" }).click();
+    await expect(page.getByText("A fazer")).toBeVisible();
+
+    await page.getByRole("button", { name: /^Adicionar coluna$/ }).click();
+    await page.getByLabel("Nome da coluna").fill("Feito");
+    await page.getByRole("button", { name: "Criar coluna" }).click();
+    await expect(
+      page.getByRole("button", { name: /Renomear Feito/i }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: /Renomear Feito/i }).click();
+    const renameDialog = page.getByRole("dialog", { name: "Renomear coluna" });
+    await renameDialog.getByLabel("Nome").fill("Concluído");
+    await renameDialog.getByRole("button", { name: "Salvar" }).click();
+    await expect(
+      page.getByRole("button", { name: /Excluir Concluído/i }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: /Excluir Concluído/i }).click();
+    await page
+      .getByRole("dialog", { name: "Excluir coluna" })
+      .getByRole("button", { name: "Excluir coluna" })
+      .click();
+    await expect(
+      page.getByRole("button", { name: /Excluir Concluído/i }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: /Renomear A fazer/i }),
+    ).toBeVisible();
+  });
+
+  test("dono adiciona e remove participante", async ({ page }) => {
+    await login(page);
+    await page.goto("/projects");
+
+    await page.getByRole("button", { name: /Novo projeto/i }).click();
+    const createDialog = page.getByRole("dialog", { name: "Novo projeto" });
+    await createDialog.getByLabel("Nome").fill("Projeto Participantes");
+    await createDialog.getByRole("button", { name: "Criar projeto" }).click();
+    await expect(createDialog).toBeHidden();
+
+    await page.getByRole("link", { name: /Projeto Participantes/i }).click();
+    await expect(
+      page.getByRole("heading", { name: "Projeto Participantes" }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: /Adicionar/i }).click();
+    const addDialog = page.getByRole("dialog", { name: "Adicionar participante" });
+    await expect(addDialog).toBeVisible();
+    await addDialog
+      .getByLabel("Buscar por nome ou e-mail")
+      .fill("colega@taskhive.test");
+    await addDialog.getByRole("button", { name: /Colega E2E/i }).click();
+    await expect(addDialog).toBeHidden();
+    await expect(page.getByText("Colega E2E")).toBeVisible();
+
+    await page
+      .getByRole("button", { name: /Remover Colega E2E/i })
+      .click();
+    const removeDialog = page.getByRole("dialog", {
+      name: "Remover participante",
+    });
+    await expect(removeDialog).toBeVisible();
+    await removeDialog.getByRole("button", { name: "Remover" }).click();
+    await expect(page.getByText("Colega E2E")).toHaveCount(0);
+  });
+
   test("logout volta ao estado deslogado", async ({ page }) => {
     await login(page);
+    await page.getByRole("button", { name: "Abrir perfil" }).click();
+    await expect(page.getByRole("dialog", { name: "Perfil" })).toBeVisible();
     await page.getByRole("button", { name: "Sair da conta" }).click();
     await expect(page).toHaveURL(/\/login/);
 

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppLogo } from "@/components/brand/app-logo";
-import { LogoutButton } from "@/components/auth/logout-button";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { UserMenu } from "@/components/layout/user-menu";
 import type { SessionUser } from "@/lib/session";
@@ -48,7 +47,6 @@ export function AppHeader({ user }: { user: SessionUser }) {
         <div className="flex items-center gap-3">
           <UserMenu user={user} />
           <ThemeToggle />
-          <LogoutButton />
         </div>
       </div>
     </header>

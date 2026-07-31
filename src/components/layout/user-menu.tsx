@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FaUser, FaXmark } from "react-icons/fa6";
+import { LogoutButton } from "@/components/auth/logout-button";
 import type { SessionUser } from "@/lib/session";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -127,9 +128,12 @@ export function UserMenu({ user }: { user: SessionUser }) {
               />
             </dl>
 
-            <p className="mt-auto pt-6 text-xs text-app-muted">
-              Em breve: edição de perfil, foto e preferências.
-            </p>
+            <div className="mt-auto space-y-4 pt-6">
+              <p className="text-xs text-app-muted">
+                Em breve: edição de perfil, foto e preferências.
+              </p>
+              <LogoutButton variant="panel" />
+            </div>
           </aside>
             </div>,
             document.body,

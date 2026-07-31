@@ -78,33 +78,33 @@ Objetivo: CRUD de projetos e quadro kanban funcional (core do produto).
 
 ### 3.2 Participantes
 
-- [ ] **Listar participantes** do projeto (`GET /projects/:id/participants`).
-- [ ] **Adicionar participante** por ID ou busca de utilizador (`POST /projects/:id/participants`).
-- [ ] **Remover participante** com confirmação (`DELETE .../participants/:userId`).
-- [ ] **Permissões na UI:** ocultar acções de gestão para quem não é dono/admin (alinhado com `canManageProject` do backend).
-- [ ] **Testes (participantes):** unit/RTL — listar, adicionar, remover, 403/ocultar acções para não-gestor; E2E smoke — dono adiciona/remove participante no detalhe do projeto.
+- [x] **Listar participantes** do projeto (`GET /projects/:id/participants`) em `ProjectParticipants` no detalhe — dono vem de `userOwner` + lista da API.
+- [x] **Adicionar participante** por busca de nome/e-mail em `GET /users` + `POST /projects/:id/participants` (modal com resultados filtrados).
+- [x] **Remover participante** com confirmação (`DELETE .../participants/:userId`).
+- [x] **Permissões na UI:** botões Adicionar/Remover só para dono/admin (`canManage` via `canManageProject`).
+- [x] **Testes (participantes):** unit/RTL em `tests/unit/components/projects/project-participants.test.tsx` (listar, permissões, add, erro API, remove); E2E smoke — dono adiciona/remove `colega@taskhive.test`; mock com `GET/POST/DELETE .../participants` e `GET /users`.
 
 ### 3.3 Colunas (project stages)
 
-- [ ] **Carregar colunas** por projeto (`GET /project-stages/project/:id`).
-- [ ] **CRUD de colunas** (criar, renomear, reordenar se API permitir, eliminar) — respeitar `canManageProject`.
-- [ ] **Testes (colunas):** unit/RTL — CRUD e permissões; mock backend E2E com stages se entrar no smoke do kanban.
+- [x] **Carregar colunas** por projeto (`GET /project-stages/project/:id`) no quadro (`ProjectKanban`) — `src/lib/stages-api.ts`.
+- [x] **CRUD de colunas:** criar/renomear (modais), eliminar com confirmação, reordenar com setas via dois `PATCH` trocando `order` (API sem endpoint de reorder). Acções só para dono/admin.
+- [x] **Testes (colunas):** unit/RTL em `tests/unit/components/projects/project-stages.test.tsx`; E2E smoke criar/renomear/excluir; mock com `GET/POST/PATCH/DELETE` de `project-stages`.
 
 ### 3.4 Tarefas (kanban)
 
-- [ ] **Quadro kanban:** colunas horizontais com cards de tarefa (`GET /tasks/stage/:stageId`).
-- [ ] **Card de tarefa:** título, descrição resumida, responsável, datas.
-- [ ] **Criar / editar tarefa:** modal ou painel lateral (`POST/PATCH /tasks`).
-- [ ] **Mover entre colunas:** botões ou drag-and-drop — `PATCH /tasks/nextStage/:id` e `previousStage/:id` (drag-and-drop é nice-to-have; botões primeiro).
-- [ ] **Detalhe da tarefa:** `/projects/[id]/tasks/[taskId]` ou drawer — subtarefas, timetrack, metadados.
-- [ ] **Eliminar tarefa** com confirmação.
-- [ ] **Testes (kanban):** unit/RTL — render do quadro, criar/editar/mover/eliminar; E2E smoke — abrir projeto → criar tarefa → mover de coluna → eliminar.
+- [x] **Quadro kanban:** `ProjectKanban` — colunas horizontais com cards (`GET /tasks/stage/:stageId` por coluna).
+- [x] **Card de tarefa:** título, descrição resumida, data limite; dono implícito (`user` na criação — API sem assignee).
+- [x] **Criar / editar tarefa:** modal (`POST /tasks` + `PATCH` para description/finishDate; edição só `PATCH`).
+- [x] **Mover entre colunas:** setas no card → `PATCH /tasks/:id` com `stageId` da coluna adjacente (por `order`); permissão alinhada a `canMoveOrRemoveTask` (dono da tarefa ou admin). Drag-and-drop fica nice-to-have.
+- [x] **Detalhe da tarefa:** drawer lateral (portal) com metadados; subtarefas inline; placeholder para timetrack.
+- [x] **Eliminar tarefa** com confirmação no drawer (`DELETE /tasks/:id`, soft delete).
+- [x] **Testes (kanban):** unit/RTL (`project-kanban`, `canMoveOrRemoveTask`); E2E smoke criar → mover → excluir; mock com CRUD de `/tasks`.
 
 ### 3.5 Subtarefas
 
-- [ ] **Lista na tarefa** (`GET /subtasks/task/:taskId`).
-- [ ] **CRUD inline** (criar, marcar concluída, editar, eliminar).
-- [ ] **Testes (subtarefas):** unit/RTL do CRUD inline no detalhe da tarefa.
+- [x] **Lista na tarefa** (`GET /subtasks/task/:taskId`) em `TaskSubtasks` no drawer.
+- [x] **CRUD inline** (criar, marcar concluída, editar, eliminar); gestão só para o responsável; backend aceita `isCompleted` no `PATCH`.
+- [x] **Testes (subtarefas):** unit/RTL (`task-subtasks`, `canManageSubtask`); E2E smoke no drawer; mock com CRUD de `/subtasks`.
 
 ---
 
@@ -183,7 +183,10 @@ Convenção: testes em **`tests/`** (fora de `src/`). `tests/unit/` espelha `src
 
 Regra: **cada nova tela/feature da Fase 3+ inclui testes unit/RTL na mesma entrega**; smoke E2E quando o fluxo for crítico (ver itens "Testes (...)" nas fases acima).
 
-- [ ] **Estender mock E2E:** stages, tasks, subtasks, to-do e timetrack em `tests/e2e/mock-backend.mjs` conforme as fases forem implementadas.
+- [x] **Mock E2E — participantes/users:** `GET /users` e CRUD de participantes no mock.
+- [x] **Mock E2E — project-stages:** listagem por projeto + CRUD de colunas no mock.
+- [x] **Mock E2E — tasks:** `GET /tasks/stage/:id`, POST/PATCH/DELETE de tarefas no mock.
+- [ ] **Estender mock E2E:** subtasks, to-do e timetrack em `tests/e2e/mock-backend.mjs` conforme as fases forem implementadas.
 - [ ] **Forgot-password (unit/RTL):** formulário e estados de sucesso/erro (fluxo feliz E2E depende de e-mail no backend).
 - [ ] **Dashboard (unit/RTL):** `ProjectsSection` / `ToDosSection` (loading, vazio, erro, links).
 - [ ] **Acessibilidade automatizada:** axe (ou similar) nos formulários e shell autenticado.

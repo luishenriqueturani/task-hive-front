@@ -1,8 +1,16 @@
 import { readApiErrorMessage } from "@/lib/api-error";
-import type { ProjectSummary } from "@/lib/api-types";
+import type {
+  ProjectParticipant,
+  ProjectSummary,
+  UserPublic,
+} from "@/lib/api-types";
 
 /** Chave de cache da listagem de projetos (compartilhada com o dashboard). */
 export const PROJECTS_QUERY_KEY = ["/projects"] as const;
+
+export function participantsQueryKey(projectId: string) {
+  return ["/projects", projectId, "participants"] as const;
+}
 
 export interface ProjectInput {
   name: string;
@@ -56,6 +64,48 @@ export async function deleteProject(id: string): Promise<void> {
       await readApiErrorMessage(res, "Não foi possível excluir o projeto."),
     );
   }
+}
+
+export async function fetchParticipants(
+  projectId: string,
+): Promise<ProjectParticipant[]> {
+  const res = await fetch(`/api/bff/projects/${projectId}/participants`, {
+    credentials: "include",
+  });
+  return parseOrThrow(res, "Não foi possível carregar os participantes.");
+}
+
+export async function addParticipant(
+  projectId: string,
+  userId: string,
+): Promise<ProjectParticipant[]> {
+  const res = await fetch(`/api/bff/projects/${projectId}/participants`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ userId }),
+  });
+  return parseOrThrow(res, "Não foi possível adicionar o participante.");
+}
+
+export async function removeParticipant(
+  projectId: string,
+  userId: string,
+): Promise<ProjectParticipant[]> {
+  const res = await fetch(
+    `/api/bff/projects/${projectId}/participants/${userId}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+    },
+  );
+  return parseOrThrow(res, "Não foi possível remover o participante.");
+}
+
+/** Lista utilizadores para o seletor de participantes (`GET /users`). */
+export async function fetchUsers(): Promise<UserPublic[]> {
+  const res = await fetch("/api/bff/users", { credentials: "include" });
+  return parseOrThrow(res, "Não foi possível carregar os utilizadores.");
 }
 
 /** Dono ou admin podem gerir o projeto (alinhado ao canManageProject do backend). */

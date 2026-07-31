@@ -26,8 +26,10 @@ const projectsPayload = [
 ];
 
 function mockSession(user: { id: string; role: string | null } | null) {
-  vi.mocked(fetch).mockImplementation(async (input) => {
+  vi.mocked(fetch).mockImplementation(async (input, init) => {
     const url = String(input);
+    const method = (init?.method ?? "GET").toUpperCase();
+
     if (url.includes("/api/auth/me")) {
       if (!user) {
         return new Response(JSON.stringify({ message: "Não autenticado." }), {
@@ -46,7 +48,23 @@ function mockSession(user: { id: string; role: string | null } | null) {
         { status: 200 },
       );
     }
-    if (url.includes("/api/bff/projects") && !url.match(/\/projects\/\d/)) {
+    if (url.includes("/participants") && method === "GET") {
+      return new Response(
+        JSON.stringify(projectsPayload[0].participants),
+        { status: 200 },
+      );
+    }
+    if (url.includes("/project-stages/project/") && method === "GET") {
+      return new Response(JSON.stringify([]), { status: 200 });
+    }
+    if (url.includes("/tasks/stage/") && method === "GET") {
+      return new Response(JSON.stringify([]), { status: 200 });
+    }
+    if (
+      (url.endsWith("/api/bff/projects") ||
+        url.includes("/api/bff/projects?")) &&
+      method === "GET"
+    ) {
       return new Response(JSON.stringify(projectsPayload), { status: 200 });
     }
     return new Response("not found", { status: 404 });
@@ -69,26 +87,33 @@ describe("ProjectDetail", () => {
     ).toBeInTheDocument();
   });
 
-  it("mostra Editar/Excluir para o dono", async () => {
+  it("mostra menu de ações para o dono", async () => {
+    const user = userEvent.setup();
     mockSession({ id: "owner-1", role: "CLIENT" });
     renderWithProviders(<ProjectDetail projectId="1" />);
 
     expect(await screen.findByRole("heading", { name: "Backlog" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Editar/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Excluir/i })).toBeInTheDocument();
-    expect(screen.getByText("Bob")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "Mais ações do projeto" }),
+    );
+    expect(screen.getByRole("menuitem", { name: "Editar" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Excluir" })).toBeInTheDocument();
+    expect(await screen.findByText("Bob")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Adicionar", exact: true }),
+    ).toBeInTheDocument();
   });
 
-  it("oculta Editar/Excluir para participante comum", async () => {
+  it("oculta menu de ações e Adicionar para participante comum", async () => {
     mockSession({ id: "p1", role: "CLIENT" });
     renderWithProviders(<ProjectDetail projectId="1" />);
 
     await screen.findByRole("heading", { name: "Backlog" });
     expect(
-      screen.queryByRole("button", { name: /Editar/i }),
+      screen.queryByRole("button", { name: "Mais ações do projeto" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /Excluir/i }),
+      screen.queryByRole("button", { name: "Adicionar", exact: true }),
     ).not.toBeInTheDocument();
   });
 
@@ -109,7 +134,10 @@ describe("ProjectDetail", () => {
     renderWithProviders(<ProjectDetail projectId="1" />);
     await screen.findByRole("heading", { name: "Backlog" });
 
-    await user.click(screen.getByRole("button", { name: /Excluir/i }));
+    await user.click(
+      screen.getByRole("button", { name: "Mais ações do projeto" }),
+    );
+    await user.click(screen.getByRole("menuitem", { name: "Excluir" }));
     expect(
       screen.getByRole("dialog", { name: "Excluir projeto" }),
     ).toBeInTheDocument();
