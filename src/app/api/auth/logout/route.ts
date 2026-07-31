@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { backendBase } from "@/lib/backend";
-import { getSessionToken, SESSION_COOKIE } from "@/lib/session";
+import {
+  getSessionToken,
+  SESSION_COOKIE,
+  sessionCookieSecure,
+} from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +31,7 @@ export async function POST() {
   const response = new NextResponse(null, { status: 204 });
   response.cookies.set(SESSION_COOKIE, "", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: sessionCookieSecure(),
     sameSite: "lax",
     path: "/",
     maxAge: 0,

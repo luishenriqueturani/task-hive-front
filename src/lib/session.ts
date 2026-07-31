@@ -10,9 +10,19 @@ export const SESSION_COOKIE = "th_session";
 /** Alinhado ao expiresIn padrão do JWT no backend (90 dias). */
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 90;
 
+/** Em HTTP doméstico o Compose define SESSION_COOKIE_SECURE=false. */
+export function sessionCookieSecure(): boolean {
+  const explicit = process.env.SESSION_COOKIE_SECURE?.trim().toLowerCase();
+  if (explicit === "true" || explicit === "1") return true;
+  if (explicit === "false" || explicit === "0") return false;
+  return process.env.NODE_ENV === "production";
+}
+
 export const sessionCookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
+  get secure() {
+    return sessionCookieSecure();
+  },
   sameSite: "lax" as const,
   path: "/",
   maxAge: SESSION_MAX_AGE_SECONDS,

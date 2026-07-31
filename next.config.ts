@@ -11,11 +11,20 @@ const baseSecurityHeaders = [
   },
 ] as const;
 
+function hstsEnabled(): boolean {
+  const explicit = process.env.ENABLE_HSTS?.trim().toLowerCase();
+  if (explicit === "true" || explicit === "1") return true;
+  if (explicit === "false" || explicit === "0") return false;
+  // Em production com HTTP doméstico o Compose define ENABLE_HSTS=false.
+  return false;
+}
+
 const nextConfig: NextConfig = {
+  output: "standalone",
   async headers() {
     const securityHeaders = [
       ...baseSecurityHeaders,
-      ...(process.env.NODE_ENV === "production"
+      ...(hstsEnabled()
         ? ([
             {
               key: "Strict-Transport-Security",

@@ -1,4 +1,8 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Frontend Next.js do Task Hive (BFF com cookies httpOnly, UI em pt-BR).
+
+## Docker (produção em casa)
+
+A stack completa (UI + API + Postgres + Nginx) vive na **raiz do monorepo** — ver [`../README.md`](../README.md#docker-em-casa-stack-completa). Este diretório tem o [`Dockerfile`](Dockerfile) (`output: 'standalone'`).
 
 ## Testes
 
