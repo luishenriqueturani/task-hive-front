@@ -221,6 +221,33 @@ test.describe("smoke Task Hive", () => {
     await expect(page.getByText("Colega E2E")).toHaveCount(0);
   });
 
+  test("tarefas avulsas: criar, concluir e excluir", async ({ page }) => {
+    await login(page);
+    await page.getByRole("link", { name: "Tarefas avulsas" }).click();
+    await expect(page).toHaveURL(/\/to-do$/);
+
+    await page.getByRole("button", { name: /Nova tarefa/i }).click();
+    const create = page.getByRole("dialog", { name: "Nova tarefa avulsa" });
+    await expect(create).toBeVisible();
+    await create.getByLabel("Título").fill("Comprar café");
+    await create.getByLabel("Descrição").fill("No mercado perto de casa");
+    await create.getByRole("button", { name: "Criar tarefa" }).click();
+    await expect(create).toBeHidden();
+    await expect(page.getByText("Comprar café")).toBeVisible();
+
+    await page.getByRole("button", { name: /^Concluir$/ }).click();
+    await page.getByLabel("Filtrar por status").selectOption("DONE");
+    await expect(page.getByText("Comprar café")).toBeVisible();
+    await expect(
+      page.locator("span").filter({ hasText: /^Concluída$/ }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: /^Excluir$/ }).click();
+    const del = page.getByRole("dialog", { name: "Excluir tarefa" });
+    await del.getByRole("button", { name: "Excluir tarefa" }).click();
+    await expect(page.getByText("Comprar café")).toHaveCount(0);
+  });
+
   test("logout volta ao estado deslogado", async ({ page }) => {
     await login(page);
     await page.getByRole("button", { name: "Abrir perfil" }).click();

@@ -95,7 +95,10 @@ export interface ToDoSummary {
   status: ToDoStatus;
   type: ToDoType;
   recurringType: "DAILY" | "WEEKLY" | "MONTHLY" | null;
+  recurringTimes?: number | null;
+  recurringCount?: number | null;
   recurringNextDate: string | null;
   recurringDeadline: string | null;
   createdAt: string;
+  updatedAt?: string | null;
 }

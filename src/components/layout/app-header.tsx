@@ -8,7 +8,7 @@ import type { SessionUser } from "@/lib/session";
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Painel", ready: true },
   { href: "/projects", label: "Projetos", ready: true },
-  { href: "/to-do", label: "Tarefas avulsas", ready: false },
+  { href: "/to-do", label: "Tarefas avulsas", ready: true },
 ];
 
 /** Cabeçalho do ambiente autenticado: logo, navegação, usuário e ações. */

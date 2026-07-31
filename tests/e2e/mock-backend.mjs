@@ -25,11 +25,39 @@ const tasks = new Map();
 const subtasks = new Map();
 /** @type {Map<string, { id: string, taskId: string, userId: string, start: string, end: string | null }>} */
 const timetracks = new Map();
+/** @type {Map<string, object>} */
+const todos = new Map();
 let projectSeq = 1n;
 let stageSeq = 1n;
 let taskSeq = 1n;
 let subtaskSeq = 1n;
 let timetrackSeq = 1n;
+let todoSeq = 1n;
+
+function nextRecurringDate(type) {
+  const d = new Date();
+  if (type === "DAILY") d.setDate(d.getDate() + 1);
+  else if (type === "WEEKLY") d.setDate(d.getDate() + 7);
+  else if (type === "MONTHLY") d.setMonth(d.getMonth() + 1);
+  return d.toISOString();
+}
+
+function todoView(t) {
+  return {
+    id: t.id,
+    title: t.title,
+    description: t.description,
+    status: t.status,
+    type: t.type,
+    recurringType: t.recurringType,
+    recurringTimes: t.recurringTimes,
+    recurringCount: t.recurringCount,
+    recurringNextDate: t.recurringNextDate,
+    recurringDeadline: t.recurringDeadline,
+    createdAt: t.createdAt,
+    updatedAt: t.updatedAt,
+  };
+}
 
 function timetrackView(entry) {
   const user = usersById.get(entry.userId);
@@ -186,7 +214,7 @@ function send(res, status, body) {
     "content-type": "application/json",
     "access-control-allow-origin": "*",
     "access-control-allow-headers": "content-type, authorization",
-    "access-control-allow-methods": "GET,POST,PATCH,DELETE,OPTIONS",
+    "access-control-allow-methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
   });
   res.end(payload);
 }
@@ -306,6 +334,150 @@ const server = http.createServer(async (req, res) => {
           deletedAt: null,
         })),
       );
+    }
+
+    if (path === "/to-do" && req.method === "GET") {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      const list = [...todos.values()]
+        .filter((t) => t.userId === user.id && !t.deletedAt)
+        .map(todoView);
+      return send(res, 200, list);
+    }
+
+    if (path === "/to-do" && req.method === "POST") {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      const body = await readBody(req);
+      if (!body?.title?.trim() || body.title.trim().length < 3) {
+        return send(res, 422, { message: "title minLength" });
+      }
+      if (!body?.description?.trim() || body.description.trim().length < 3) {
+        return send(res, 422, { message: "description minLength" });
+      }
+      const id = String(todoSeq++);
+      const recurring = body.isRecurring === true;
+      const todo = {
+        id,
+        title: body.title.trim(),
+        description: body.description.trim(),
+        status: "CREATED",
+        type: recurring ? "RECURRING" : "PUNCTUAL",
+        recurringType: recurring ? body.recurringType || "WEEKLY" : null,
+        recurringTimes: recurring ? (body.recurringTimes ?? null) : null,
+        recurringCount: 0,
+        recurringNextDate: recurring
+          ? nextRecurringDate(body.recurringType || "WEEKLY")
+          : null,
+        recurringDeadline: recurring ? (body.recurringDeadline ?? null) : null,
+        userId: user.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: null,
+        deletedAt: null,
+      };
+      todos.set(id, todo);
+      return send(res, 201, todoView(todo));
+    }
+
+    const todoEnd = /^\/to-do\/end\/([^/]+)$/.exec(path);
+    if (todoEnd && req.method === "PATCH") {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      const todo = todos.get(todoEnd[1]);
+      if (!todo || todo.deletedAt) {
+        return send(res, 400, { message: "Tarefa não encontrada" });
+      }
+      todo.status = "DONE";
+      todo.updatedAt = new Date().toISOString();
+      return send(res, 200, { affected: 1 });
+    }
+
+    const todoStatus = /^\/to-do\/status\/([^/]+)$/.exec(path);
+    if (todoStatus && req.method === "PATCH") {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      const todo = todos.get(todoStatus[1]);
+      if (!todo || todo.deletedAt) {
+        return send(res, 400, { message: "Tarefa não encontrada" });
+      }
+      const body = await readBody(req);
+      todo.status = body?.status || todo.status;
+      todo.updatedAt = new Date().toISOString();
+      return send(res, 200, { affected: 1 });
+    }
+
+    const todoNext = /^\/to-do\/nextDateRecurring\/([^/]+)$/.exec(path);
+    if (todoNext && req.method === "PATCH") {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      const todo = todos.get(todoNext[1]);
+      if (!todo || todo.deletedAt) {
+        return send(res, 400, { message: "Tarefa não encontrada" });
+      }
+      if (todo.type !== "RECURRING") {
+        todo.status = "DONE";
+        todo.updatedAt = new Date().toISOString();
+        return send(res, 200, { affected: 1 });
+      }
+      const count = (todo.recurringCount || 0) + 1;
+      if (todo.recurringTimes != null && count >= todo.recurringTimes) {
+        todo.status = "DONE";
+      } else {
+        const base = todo.recurringNextDate
+          ? new Date(todo.recurringNextDate)
+          : new Date();
+        const next = new Date(base);
+        if (todo.recurringType === "DAILY") next.setDate(next.getDate() + 1);
+        else if (todo.recurringType === "MONTHLY")
+          next.setMonth(next.getMonth() + 1);
+        else next.setDate(next.getDate() + 7);
+        if (
+          todo.recurringDeadline &&
+          next.getTime() > new Date(todo.recurringDeadline).getTime()
+        ) {
+          todo.status = "DONE";
+        } else {
+          todo.recurringCount = count;
+          todo.recurringNextDate = next.toISOString();
+          todo.status = "TODO";
+        }
+      }
+      todo.updatedAt = new Date().toISOString();
+      return send(res, 200, { affected: 1 });
+    }
+
+    const todoOne = /^\/to-do\/([^/]+)$/.exec(path);
+    if (todoOne) {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      const todo = todos.get(todoOne[1]);
+      if (!todo || todo.deletedAt) {
+        return send(res, 400, { message: "Tarefa não encontrada" });
+      }
+
+      if (req.method === "GET") {
+        return send(res, 200, todoView(todo));
+      }
+
+      if (req.method === "PUT") {
+        const body = await readBody(req);
+        if (body?.title !== undefined) todo.title = body.title;
+        if (body?.description !== undefined) todo.description = body.description;
+        if (body?.isRecurring !== undefined) {
+          todo.type = body.isRecurring ? "RECURRING" : "PUNCTUAL";
+        }
+        if (body?.recurringType !== undefined) {
+          todo.recurringType = body.recurringType;
+        }
+        todo.updatedAt = new Date().toISOString();
+        return send(res, 200, { affected: 1 });
+      }
+
+      if (req.method === "PATCH") {
+        // soft delete
+        todo.deletedAt = new Date().toISOString();
+        return send(res, 200, { affected: 1 });
+      }
     }
 
     if (path === "/projects" && req.method === "GET") {

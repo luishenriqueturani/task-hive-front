@@ -22,7 +22,7 @@ Convenções de código: [`.cursor/rules/task-hive-conventions.mdc`](.cursor/rul
 
 - [x] **Sessão no BFF:** JWT guardado em cookie httpOnly (`th_session`) via `/api/auth/login`; o proxy BFF injeta `Authorization: Bearer` nas chamadas upstream.
 - [x] **Rotas protegidas:** guard em `src/proxy.ts` (convenção do Next.js 16) — redireciona rotas privadas para `/login?next=...` e `/login` para `/` quando já autenticado.
-- [ ] **Telas de produto restantes:** to-do e perfil — kanban/timetrack já existem (`/dashboard` e CRUD de projetos também).
+- [ ] **Telas de produto restantes:** perfil — kanban/timetrack/to-do já existem.
 
 ---
 
@@ -125,11 +125,11 @@ Objetivo: registar tempo nas tarefas com feedback em tempo real.
 
 Objetivo: gestão de tarefas pontuais e recorrentes fora de projetos.
 
-- [ ] **Listagem:** `/to-do` — filtros por status, tipo (pontual/recorrente).
-- [ ] **Criar / editar / concluir** (`POST/PUT/PATCH /to-do`, `PATCH /to-do/end/:id`, `PATCH /to-do/status/:id`).
-- [ ] **Recorrência:** acção `nextDateRecurring` na UI quando aplicável.
-- [ ] **Soft delete** com confirmação.
-- [ ] **Testes (to-do):** unit/RTL — listagem, filtros, CRUD, conclusão e recorrência; E2E smoke — criar → concluir → eliminar; ativar nav "Tarefas avulsas".
+- [x] **Listagem:** `/to-do` (`TodosView`) — filtros por status e tipo; backend passa a devolver `status` no GET.
+- [x] **Criar / editar / concluir** (`POST/PUT`, `PATCH /to-do/end/:id`); soft delete via `PATCH /to-do/:id`.
+- [x] **Recorrência:** botão “Próxima data” (`PATCH /to-do/nextDateRecurring/:id`).
+- [x] **Soft delete** com confirmação.
+- [x] **Testes (to-do):** unit/RTL (`todos-view`); E2E smoke criar → concluir → excluir; nav “Tarefas avulsas” activa.
 
 ---
 
@@ -186,7 +186,7 @@ Regra: **cada nova tela/feature da Fase 3+ inclui testes unit/RTL na mesma entre
 - [x] **Mock E2E — participantes/users:** `GET /users` e CRUD de participantes no mock.
 - [x] **Mock E2E — project-stages:** listagem por projeto + CRUD de colunas no mock.
 - [x] **Mock E2E — tasks:** `GET /tasks/stage/:id`, POST/PATCH/DELETE de tarefas no mock.
-- [ ] **Estender mock E2E:** to-do em `tests/e2e/mock-backend.mjs` (subtasks e timetrack já cobertos).
+- [x] **Estender mock E2E:** subtasks, timetrack e to-do em `tests/e2e/mock-backend.mjs`.
 - [ ] **Forgot-password (unit/RTL):** formulário e estados de sucesso/erro (fluxo feliz E2E depende de e-mail no backend).
 - [ ] **Dashboard (unit/RTL):** `ProjectsSection` / `ToDosSection` (loading, vazio, erro, links).
 - [ ] **Acessibilidade automatizada:** axe (ou similar) nos formulários e shell autenticado.
