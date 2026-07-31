@@ -22,7 +22,7 @@ Convenções de código: [`.cursor/rules/task-hive-conventions.mdc`](.cursor/rul
 
 - [x] **Sessão no BFF:** JWT guardado em cookie httpOnly (`th_session`) via `/api/auth/login`; o proxy BFF injeta `Authorization: Bearer` nas chamadas upstream.
 - [x] **Rotas protegidas:** guard em `src/proxy.ts` (convenção do Next.js 16) — redireciona rotas privadas para `/login?next=...` e `/login` para `/` quando já autenticado.
-- [ ] **Telas de produto:** dashboard, kanban, to-do, timetrack, perfil — inexistentes.
+- [ ] **Telas de produto restantes:** kanban, to-do, timetrack, perfil — ainda por construir (`/dashboard` e CRUD de projetos já existem).
 
 ---
 
@@ -82,11 +82,13 @@ Objetivo: CRUD de projetos e quadro kanban funcional (core do produto).
 - [ ] **Adicionar participante** por ID ou busca de utilizador (`POST /projects/:id/participants`).
 - [ ] **Remover participante** com confirmação (`DELETE .../participants/:userId`).
 - [ ] **Permissões na UI:** ocultar acções de gestão para quem não é dono/admin (alinhado com `canManageProject` do backend).
+- [ ] **Testes (participantes):** unit/RTL — listar, adicionar, remover, 403/ocultar acções para não-gestor; E2E smoke — dono adiciona/remove participante no detalhe do projeto.
 
 ### 3.3 Colunas (project stages)
 
 - [ ] **Carregar colunas** por projeto (`GET /project-stages/project/:id`).
 - [ ] **CRUD de colunas** (criar, renomear, reordenar se API permitir, eliminar) — respeitar `canManageProject`.
+- [ ] **Testes (colunas):** unit/RTL — CRUD e permissões; mock backend E2E com stages se entrar no smoke do kanban.
 
 ### 3.4 Tarefas (kanban)
 
@@ -96,11 +98,13 @@ Objetivo: CRUD de projetos e quadro kanban funcional (core do produto).
 - [ ] **Mover entre colunas:** botões ou drag-and-drop — `PATCH /tasks/nextStage/:id` e `previousStage/:id` (drag-and-drop é nice-to-have; botões primeiro).
 - [ ] **Detalhe da tarefa:** `/projects/[id]/tasks/[taskId]` ou drawer — subtarefas, timetrack, metadados.
 - [ ] **Eliminar tarefa** com confirmação.
+- [ ] **Testes (kanban):** unit/RTL — render do quadro, criar/editar/mover/eliminar; E2E smoke — abrir projeto → criar tarefa → mover de coluna → eliminar.
 
 ### 3.5 Subtarefas
 
 - [ ] **Lista na tarefa** (`GET /subtasks/task/:taskId`).
 - [ ] **CRUD inline** (criar, marcar concluída, editar, eliminar).
+- [ ] **Testes (subtarefas):** unit/RTL do CRUD inline no detalhe da tarefa.
 
 ---
 
@@ -113,6 +117,7 @@ Objetivo: registar tempo nas tarefas com feedback em tempo real.
 - [ ] **Permissões na UI:** alinhar com regras backend (403 para quem não tem acesso).
 - [ ] **WebSocket (Socket.IO client):** ligar ao gateway do backend; eventos `joinTask`, `timetrack:started|stopped|updated|deleted`.
 - [ ] **Actualização em tempo real** do quadro/detalhe quando outro utilizador altera timetrack na mesma tarefa.
+- [ ] **Testes (timetrack):** unit/RTL — start/stop/list e estados de erro 403; mock do Socket.IO nos unitários; E2E smoke opcional (iniciar → parar → ver registo).
 
 ---
 
@@ -124,6 +129,7 @@ Objetivo: gestão de tarefas pontuais e recorrentes fora de projetos.
 - [ ] **Criar / editar / concluir** (`POST/PUT/PATCH /to-do`, `PATCH /to-do/end/:id`, `PATCH /to-do/status/:id`).
 - [ ] **Recorrência:** acção `nextDateRecurring` na UI quando aplicável.
 - [ ] **Soft delete** com confirmação.
+- [ ] **Testes (to-do):** unit/RTL — listagem, filtros, CRUD, conclusão e recorrência; E2E smoke — criar → concluir → eliminar; ativar nav "Tarefas avulsas".
 
 ---
 
@@ -134,18 +140,61 @@ O backend tem CRUD básico; permissionamento avançado de empresa está na Fase 
 - [ ] **Empresas:** listagem e CRUD (`/companies`) — apenas para roles adequados.
 - [ ] **Perfil do utilizador:** `/settings/profile` — editar nome, email (`PATCH /users/:id`).
 - [ ] **Admin (ADMIN_GOD / ADMIN_COLLABORATOR):** gestão de utilizadores se necessário (`GET/POST/PATCH /users`).
+- [ ] **Testes (empresas/perfil):** unit/RTL das telas e permissões por role; E2E smoke de edição de perfil.
 
 ---
 
 ## Fase 7 — Qualidade, DX e deploy
 
-- [ ] **README do frontend:** substituir template create-next-app por guia Task Hive (setup, env, api:generate, dev com backend) — a secção de testes já está documentada no README.
-- [x] **Testes unitários / componentes (Vitest + RTL):** libs (`api-error`, `password`, `session`, `projects-api`, `backend`), route handlers BFF (`api/auth/*`, `api/bff`), guard `proxy.ts`, formulários de auth, Modal, UserMenu e telas de projetos. Convenção: pasta `tests/unit/` espelhando `src/` (`*.test.ts` = node, `*.test.tsx` = jsdom); helpers em `tests/helpers/`. `npm test` / `npm run test:watch` / `npm run test:coverage`.
-- [x] **Smoke E2E (Playwright + mock backend):** 5 cenários em `tests/e2e/smoke.spec.ts` (guard, login, cadastro, CRUD projetos, logout) contra `tests/e2e/mock-backend.mjs`. `npm run test:e2e` (primeira vez: `npx playwright install chromium`). Novas telas (kanban, tarefas avulsas) devem ganhar testes na mesma entrega.
-- [ ] **Acessibilidade:** revisar formulários, foco, `aria-*`, contraste no tema escuro; opcional axe nos testes.
+### 7.1 Infraestrutura de testes (feito)
+
+Convenção: testes em **`tests/`** (fora de `src/`). `tests/unit/` espelha `src/` — `*.test.ts` (Vitest/node) e `*.test.tsx` (Vitest/jsdom); helpers em `tests/helpers/` (alias `@tests/*`); E2E em `tests/e2e/`. Scripts: `npm test`, `npm run test:watch`, `npm run test:coverage`, `npm run test:e2e`.
+
+- [x] **Vitest + RTL:** `vitest.config.mts`, setup, projects node/jsdom, `tests/helpers/render.tsx` e `jwt.ts`.
+- [x] **Playwright + mock backend:** `playwright.config.ts`, `tests/e2e/mock-backend.mjs` (auth, users, projects em memória), Chromium.
+
+### 7.2 Cobertura actual (feito — baseline auth + projetos)
+
+**Unitários / libs**
+
+- [x] `api-error`, `password`, `session` (`decodeSessionUser`), `projects-api` (`canManageProject`), `backend` (`backendBase`).
+
+**BFF e guard**
+
+- [x] Route handlers: `login`, `logout`, `me`, `reset-password`.
+- [x] Proxy genérico `/api/bff/[...path]` (Bearer, paths bloqueados, repasse).
+- [x] Guard `src/proxy.ts` (guest-only e rotas protegidas).
+
+**Componentes**
+
+- [x] Auth: `PasswordField`, `GeneratePasswordButton`, `LoginForm`, `RegisterForm`, `ResetPasswordForm`.
+- [x] UI/shell: `Modal`, `UserMenu`.
+- [x] Projetos: `ProjectsView`, `ProjectFormModal`, `ProjectDetail` (permissões dono vs participante).
+
+**E2E smoke** (`tests/e2e/smoke.spec.ts`)
+
+- [x] Rota protegida sem sessão → `/login?next=...`.
+- [x] Login → `/dashboard` + perfil no header.
+- [x] Cadastro com auto-login.
+- [x] CRUD de projetos (criar → editar → excluir).
+- [x] Logout → estado deslogado.
+
+### 7.3 Testes pendentes (qualidade transversal)
+
+Regra: **cada nova tela/feature da Fase 3+ inclui testes unit/RTL na mesma entrega**; smoke E2E quando o fluxo for crítico (ver itens "Testes (...)" nas fases acima).
+
+- [ ] **Estender mock E2E:** stages, tasks, subtasks, to-do e timetrack em `tests/e2e/mock-backend.mjs` conforme as fases forem implementadas.
+- [ ] **Forgot-password (unit/RTL):** formulário e estados de sucesso/erro (fluxo feliz E2E depende de e-mail no backend).
+- [ ] **Dashboard (unit/RTL):** `ProjectsSection` / `ToDosSection` (loading, vazio, erro, links).
+- [ ] **Acessibilidade automatizada:** axe (ou similar) nos formulários e shell autenticado.
+- [ ] **CI:** pipeline com `lint` + `build` + `npm test` + (opcional) `npm run test:e2e`.
+
+### 7.4 DX e deploy
+
+- [ ] **README do frontend:** substituir template create-next-app por guia Task Hive (setup, env, `api:generate`, dev com backend) — a secção de testes já está no README.
+- [ ] **Acessibilidade manual:** revisar formulários, foco, `aria-*`, contraste no tema escuro.
 - [ ] **Responsivo:** kanban utilizável em tablet/mobile (scroll horizontal, modais).
 - [ ] **Variáveis de ambiente documentadas** em `.env.example` (prod vs dev).
-- [ ] **CI:** lint + build + `npm test` + (opcional) `npm run test:e2e`.
 
 ---
 
@@ -166,6 +215,8 @@ A **Fase 1** desbloqueia todo o resto. A **Fase 3** entrega o valor principal do
 | Convenções frontend | `FrontEnd/.cursor/rules/task-hive-conventions.mdc` |
 | OpenAPI / hooks | `FrontEnd/openapi/openapi.json`, `FrontEnd/src/api/generated/` |
 | BFF proxy | `FrontEnd/src/app/api/bff/[...path]/route.ts` |
+| Testes unit/RTL | `FrontEnd/tests/unit/` |
+| Smoke E2E + mock | `FrontEnd/tests/e2e/` |
 | Backend to-do | `backend/to-do.md` |
 | Cobertura E2E backend | `backend/docs/e2e-coverage.md` |
 | Swagger (dev) | `http://localhost:3001/api` |
