@@ -13,3 +13,4 @@ alwaysApply: true
 - **Segurança e SSR**: **nunca** expor tokens de sessão ao navegador (evitar `localStorage` para auth); usar **cookies httpOnly** definidos em **Route Handlers** / servidor; chamadas autenticadas preferencialmente via **BFF** (`/api/bff`). Manter práticas rigorosas de segurança (headers, validação, sem vazar segredos em `NEXT_PUBLIC_*`).
 - **Estado global**: quando um valor for partilhido por muitas áreas, avaliar **Context API** (ou composição) antes de prop drilling profundo.
 - **Ícones**: usar **react-icons** com o conjunto **FontAwesome 6** (`react-icons/fa6`) como padrão; não criar SVGs inline. Se o ícone não existir no FA6, usar outro conjunto do react-icons.
+- **Testes**: ficam em **`tests/`** (fora de `src/`), nunca colocalizados com o código de produção. `tests/unit/` espelha a árvore de `src/` (`*.test.ts` = Vitest/node, `*.test.tsx` = Vitest/jsdom); `tests/e2e/` para Playwright; helpers em `tests/helpers/` (alias `@tests/*`).

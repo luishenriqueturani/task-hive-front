@@ -139,12 +139,13 @@ O backend tem CRUD básico; permissionamento avançado de empresa está na Fase 
 
 ## Fase 7 — Qualidade, DX e deploy
 
-- [ ] **README do frontend:** substituir template create-next-app por guia Task Hive (setup, env, api:generate, dev com backend).
-- [ ] **Testes:** smoke E2E (Playwright ou similar) — login, listar projetos, criar tarefa.
-- [ ] **Acessibilidade:** revisar formulários, foco, `aria-*`, contraste no tema escuro.
+- [ ] **README do frontend:** substituir template create-next-app por guia Task Hive (setup, env, api:generate, dev com backend) — a secção de testes já está documentada no README.
+- [x] **Testes unitários / componentes (Vitest + RTL):** libs (`api-error`, `password`, `session`, `projects-api`, `backend`), route handlers BFF (`api/auth/*`, `api/bff`), guard `proxy.ts`, formulários de auth, Modal, UserMenu e telas de projetos. Convenção: pasta `tests/unit/` espelhando `src/` (`*.test.ts` = node, `*.test.tsx` = jsdom); helpers em `tests/helpers/`. `npm test` / `npm run test:watch` / `npm run test:coverage`.
+- [x] **Smoke E2E (Playwright + mock backend):** 5 cenários em `tests/e2e/smoke.spec.ts` (guard, login, cadastro, CRUD projetos, logout) contra `tests/e2e/mock-backend.mjs`. `npm run test:e2e` (primeira vez: `npx playwright install chromium`). Novas telas (kanban, tarefas avulsas) devem ganhar testes na mesma entrega.
+- [ ] **Acessibilidade:** revisar formulários, foco, `aria-*`, contraste no tema escuro; opcional axe nos testes.
 - [ ] **Responsivo:** kanban utilizável em tablet/mobile (scroll horizontal, modais).
 - [ ] **Variáveis de ambiente documentadas** em `.env.example` (prod vs dev).
-- [ ] **CI:** lint + build + (opcional) testes E2E.
+- [ ] **CI:** lint + build + `npm test` + (opcional) `npm run test:e2e`.
 
 ---
 
@@ -176,6 +177,7 @@ A **Fase 1** desbloqueia todo o resto. A **Fase 3** entrega o valor principal do
 - Next.js 16 + App Router, React 19, Tailwind 4
 - Tema Soft Pearl + next-themes
 - Landing `/` e login `/login` (UI)
-- BFF proxy (sem auth upstream ainda)
+- BFF proxy com sessão httpOnly + guard `proxy.ts`
 - Cliente Orval + React Query para toda a API
 - Componentes base (logo, tema, layout ambiente)
+- Vitest + RTL (unitários/componentes) e Playwright smoke E2E com mock backend

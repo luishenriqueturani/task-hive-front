@@ -1,5 +1,23 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Testes
+
+```bash
+# Unitários + componentes (Vitest + React Testing Library)
+npm test
+npm run test:watch
+npm run test:coverage
+
+# Smoke E2E (Playwright + mock backend em memória)
+# Na primeira vez: npx playwright install chromium
+npm run test:e2e
+```
+
+- Testes em `tests/` (fora de `src/`): `tests/unit/` (Vitest) e `tests/e2e/` (Playwright).
+- `*.test.ts` → ambiente node (libs e BFF); `*.test.tsx` → jsdom (componentes). Helpers em `tests/helpers/`.
+- E2E sobe `tests/e2e/mock-backend.mjs` e o Next na porta 3100; cenários em `tests/e2e/smoke.spec.ts`.
+- Utilizador seed do mock: `e2e@taskhive.test` / `SenhaForte123!`.
+
 ## Getting Started
 
 First, run the development server:
