@@ -34,6 +34,10 @@ function mockKanbanApi(initialTasks: TaskSummary[] = []) {
       return new Response(JSON.stringify(stages), { status: 200 });
     }
 
+    if (url.includes("/timetrack") && method === "GET") {
+      return new Response(JSON.stringify([]), { status: 200 });
+    }
+
     const stageMatch = /\/tasks\/stage\/([^/?]+)/.exec(url);
     if (stageMatch && method === "GET") {
       const stageId = stageMatch[1];

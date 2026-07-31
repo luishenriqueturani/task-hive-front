@@ -60,6 +60,9 @@ function mockSession(user: { id: string; role: string | null } | null) {
     if (url.includes("/tasks/stage/") && method === "GET") {
       return new Response(JSON.stringify([]), { status: 200 });
     }
+    if (url.includes("/timetrack") && method === "GET") {
+      return new Response(JSON.stringify([]), { status: 200 });
+    }
     if (
       (url.endsWith("/api/bff/projects") ||
         url.includes("/api/bff/projects?")) &&

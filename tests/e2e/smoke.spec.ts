@@ -128,6 +128,11 @@ test.describe("smoke Task Hive", () => {
       .click();
     await expect(detail.getByText("1/1 concluídas")).toBeVisible();
 
+    await detail.getByRole("button", { name: /^Iniciar$/ }).click();
+    await expect(detail.getByText(/Em curso/i)).toBeVisible();
+    await detail.getByRole("button", { name: /^Parar$/ }).click();
+    await expect(detail.getByText("Usuário E2E")).toBeVisible();
+
     await detail.getByRole("button", { name: /^Excluir$/ }).click();
     await page
       .getByRole("dialog", { name: "Excluir tarefa" })

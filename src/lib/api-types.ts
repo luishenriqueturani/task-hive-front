@@ -63,6 +63,15 @@ export interface SubtaskSummary {
   deletedAt?: string | null;
 }
 
+/** Registo de timetrack (`GET /tasks/:taskId/timetrack`). */
+export interface TimetrackEntry {
+  id: string;
+  start: string;
+  end: string | null;
+  userId: string;
+  userName: string;
+}
+
 /** Tarefa do kanban (`GET /tasks/stage/:id`, create/update). */
 export interface TaskSummary {
   id: string;

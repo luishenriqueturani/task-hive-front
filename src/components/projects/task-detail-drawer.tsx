@@ -14,6 +14,7 @@ import {
 import type { SessionUser } from "@/lib/session";
 import { TaskFormModal } from "./task-form-modal";
 import { TaskSubtasks } from "./task-subtasks";
+import { TaskTimetrack } from "./task-timetrack";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
@@ -23,17 +24,19 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
 
 /**
  * Drawer de detalhe da tarefa (portal no body). Metadados + editar/excluir;
- * subtarefas inline; timetrack fica como placeholder (fase seguinte).
+ * subtarefas e timetrack inline.
  */
 export function TaskDetailDrawer({
   task,
   projectId,
   sessionUser,
+  canManageProject = false,
   onClose,
 }: {
   task: TaskSummary;
   projectId: string;
   sessionUser: SessionUser | undefined;
+  canManageProject?: boolean;
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -143,12 +146,12 @@ export function TaskDetailDrawer({
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           <TaskSubtasks taskId={task.id} sessionUser={sessionUser} />
+          <TaskTimetrack
+            taskId={task.id}
+            sessionUser={sessionUser}
+            canManageProject={canManageProject}
+          />
         </div>
-
-        <section className="mt-3 rounded-xl border border-dashed border-app-border/80 p-4">
-          <h3 className="text-sm font-semibold text-app-text">Timetrack</h3>
-          <p className="mt-1 text-xs text-app-muted">Em breve.</p>
-        </section>
       </aside>
 
       {editing && task.stage?.id ? (

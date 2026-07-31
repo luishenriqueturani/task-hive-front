@@ -23,10 +23,40 @@ const stages = new Map();
 const tasks = new Map();
 /** @type {Map<string, { id: string, name: string, description: string | null, isCompleted: boolean, taskId: string, responsibleId: string, deletedAt: string | null }>} */
 const subtasks = new Map();
+/** @type {Map<string, { id: string, taskId: string, userId: string, start: string, end: string | null }>} */
+const timetracks = new Map();
 let projectSeq = 1n;
 let stageSeq = 1n;
 let taskSeq = 1n;
 let subtaskSeq = 1n;
+let timetrackSeq = 1n;
+
+function timetrackView(entry) {
+  const user = usersById.get(entry.userId);
+  return {
+    id: entry.id,
+    start: entry.start,
+    end: entry.end,
+    userId: entry.userId,
+    userName: user?.name || user?.email || "—",
+  };
+}
+
+function projectForTask(task) {
+  const stage = stages.get(task.stageId);
+  if (!stage) return null;
+  return projects.get(stage.projectId) ?? null;
+}
+
+function canAccessProject(project, user) {
+  if (!project || project.deletedAt) return false;
+  return (
+    project.userOwner.id === user.id ||
+    project.participants.some((p) => p.id === user.id) ||
+    user.role === "ADMIN_GOD" ||
+    user.role === "ADMIN_COLLABORATOR"
+  );
+}
 
 function subtaskView(sub) {
   const responsible = usersById.get(sub.responsibleId);
@@ -591,6 +621,126 @@ const server = http.createServer(async (req, res) => {
       if (req.method === "DELETE") {
         sub.deletedAt = new Date().toISOString();
         return send(res, 200, { affected: 1 });
+      }
+    }
+
+    const ttList = /^\/tasks\/([^/]+)\/timetrack$/.exec(path);
+    if (ttList && req.method === "GET") {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      const task = tasks.get(ttList[1]);
+      if (!task || task.deletedAt) {
+        return send(res, 404, { message: "Task not found" });
+      }
+      const project = projectForTask(task);
+      if (!canAccessProject(project, user)) {
+        return send(res, 403, {
+          message: "Sem permissão para listar timetrack desta tarefa",
+        });
+      }
+      const list = [...timetracks.values()]
+        .filter((t) => t.taskId === task.id)
+        .map(timetrackView);
+      return send(res, 200, list);
+    }
+
+    const ttStart = /^\/tasks\/([^/]+)\/timetrack\/start$/.exec(path);
+    if (ttStart && req.method === "POST") {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      const task = tasks.get(ttStart[1]);
+      if (!task || task.deletedAt) {
+        return send(res, 404, { message: "Task not found" });
+      }
+      const project = projectForTask(task);
+      if (!canAccessProject(project, user)) {
+        return send(res, 403, {
+          message: "Sem permissão para registrar timetrack nesta tarefa",
+        });
+      }
+      // Auto-stop timers activos do mesmo user
+      for (const entry of timetracks.values()) {
+        if (entry.userId === user.id && entry.end == null) {
+          entry.end = new Date().toISOString();
+        }
+      }
+      const id = String(timetrackSeq++);
+      const entry = {
+        id,
+        taskId: task.id,
+        userId: user.id,
+        start: new Date().toISOString(),
+        end: null,
+      };
+      timetracks.set(id, entry);
+      return send(res, 201, {
+        ...timetrackView(entry),
+        user: { id: user.id, name: user.name },
+        task: { id: task.id },
+      });
+    }
+
+    const ttStop = /^\/tasks\/([^/]+)\/timetrack\/([^/]+)\/stop$/.exec(path);
+    if (ttStop && req.method === "PATCH") {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      const task = tasks.get(ttStop[1]);
+      const entry = timetracks.get(ttStop[2]);
+      if (!task || task.deletedAt || !entry || entry.taskId !== task.id) {
+        return send(res, 404, { message: "Timetrack not found" });
+      }
+      const project = projectForTask(task);
+      if (!canAccessProject(project, user)) {
+        return send(res, 403, {
+          message: "Sem permissão para editar/remover timetrack desta tarefa",
+        });
+      }
+      const manages = canManage(project, user);
+      if (entry.userId !== user.id && !manages) {
+        return send(res, 403, {
+          message:
+            "Apenas o usuário que iniciou ou quem gerencia o projeto pode encerrar",
+        });
+      }
+      entry.end = new Date().toISOString();
+      return send(res, 200, {
+        ...timetrackView(entry),
+        user: { id: entry.userId, name: usersById.get(entry.userId)?.name },
+      });
+    }
+
+    const ttOne = /^\/tasks\/([^/]+)\/timetrack\/([^/]+)$/.exec(path);
+    if (ttOne) {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      const task = tasks.get(ttOne[1]);
+      const entry = timetracks.get(ttOne[2]);
+      if (!task || task.deletedAt || !entry || entry.taskId !== task.id) {
+        return send(res, 404, { message: "Timetrack not found" });
+      }
+      const project = projectForTask(task);
+      if (!canAccessProject(project, user)) {
+        return send(res, 403, {
+          message: "Sem permissão para editar/remover timetrack desta tarefa",
+        });
+      }
+      const manages = canManage(project, user);
+      if (entry.userId !== user.id && !manages) {
+        return send(res, 403, {
+          message:
+            "Apenas o dono do registro ou quem gerencia o projeto pode editar/remover",
+        });
+      }
+
+      if (req.method === "PATCH") {
+        const body = await readBody(req);
+        if (body?.end) entry.end = body.end;
+        return send(res, 200, timetrackView(entry));
+      }
+
+      if (req.method === "DELETE") {
+        timetracks.delete(entry.id);
+        return send(res, 200, { deleted: true });
       }
     }
 

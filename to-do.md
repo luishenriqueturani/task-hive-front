@@ -22,7 +22,7 @@ Convenções de código: [`.cursor/rules/task-hive-conventions.mdc`](.cursor/rul
 
 - [x] **Sessão no BFF:** JWT guardado em cookie httpOnly (`th_session`) via `/api/auth/login`; o proxy BFF injeta `Authorization: Bearer` nas chamadas upstream.
 - [x] **Rotas protegidas:** guard em `src/proxy.ts` (convenção do Next.js 16) — redireciona rotas privadas para `/login?next=...` e `/login` para `/` quando já autenticado.
-- [ ] **Telas de produto restantes:** kanban, to-do, timetrack, perfil — ainda por construir (`/dashboard` e CRUD de projetos já existem).
+- [ ] **Telas de produto restantes:** to-do e perfil — kanban/timetrack já existem (`/dashboard` e CRUD de projetos também).
 
 ---
 
@@ -96,7 +96,7 @@ Objetivo: CRUD de projetos e quadro kanban funcional (core do produto).
 - [x] **Card de tarefa:** título, descrição resumida, data limite; dono implícito (`user` na criação — API sem assignee).
 - [x] **Criar / editar tarefa:** modal (`POST /tasks` + `PATCH` para description/finishDate; edição só `PATCH`).
 - [x] **Mover entre colunas:** setas no card → `PATCH /tasks/:id` com `stageId` da coluna adjacente (por `order`); permissão alinhada a `canMoveOrRemoveTask` (dono da tarefa ou admin). Drag-and-drop fica nice-to-have.
-- [x] **Detalhe da tarefa:** drawer lateral (portal) com metadados; subtarefas inline; placeholder para timetrack.
+- [x] **Detalhe da tarefa:** drawer lateral (portal) com metadados; subtarefas e timetrack inline.
 - [x] **Eliminar tarefa** com confirmação no drawer (`DELETE /tasks/:id`, soft delete).
 - [x] **Testes (kanban):** unit/RTL (`project-kanban`, `canMoveOrRemoveTask`); E2E smoke criar → mover → excluir; mock com CRUD de `/tasks`.
 
@@ -112,12 +112,12 @@ Objetivo: CRUD de projetos e quadro kanban funcional (core do produto).
 
 Objetivo: registar tempo nas tarefas com feedback em tempo real.
 
-- [ ] **UI de timetrack** no detalhe da tarefa: iniciar, parar, listar registos (`GET/POST/PATCH/DELETE` em `/tasks/:taskId/timetrack`).
-- [ ] **Timer activo:** indicador visual quando há registo em curso.
-- [ ] **Permissões na UI:** alinhar com regras backend (403 para quem não tem acesso).
-- [ ] **WebSocket (Socket.IO client):** ligar ao gateway do backend; eventos `joinTask`, `timetrack:started|stopped|updated|deleted`.
-- [ ] **Actualização em tempo real** do quadro/detalhe quando outro utilizador altera timetrack na mesma tarefa.
-- [ ] **Testes (timetrack):** unit/RTL — start/stop/list e estados de erro 403; mock do Socket.IO nos unitários; E2E smoke opcional (iniciar → parar → ver registo).
+- [x] **UI de timetrack** no detalhe da tarefa (`TaskTimetrack`): iniciar, parar, listar e eliminar (`GET/POST/PATCH/DELETE` em `/tasks/:taskId/timetrack`).
+- [x] **Timer activo:** indicador “Em curso” com duração em directo.
+- [x] **Permissões na UI:** `canManageTimetrack` (dono do registo ou gestor); erros 403 da API no ecrã.
+- [x] **WebSocket (Socket.IO client):** `useTaskTimetrackSocket` via `/api/runtime` (`wsUrl` = `BACKEND_API_BASE_URL`); `joinTask` + eventos `timetrack:*`.
+- [x] **Actualização em tempo real** do detalhe: invalida a query de timetrack ao receber eventos.
+- [x] **Testes (timetrack):** unit/RTL (`task-timetrack`, helpers, mock Socket.IO); E2E smoke iniciar → parar; mock HTTP em `mock-backend.mjs`.
 
 ---
 
@@ -186,7 +186,7 @@ Regra: **cada nova tela/feature da Fase 3+ inclui testes unit/RTL na mesma entre
 - [x] **Mock E2E — participantes/users:** `GET /users` e CRUD de participantes no mock.
 - [x] **Mock E2E — project-stages:** listagem por projeto + CRUD de colunas no mock.
 - [x] **Mock E2E — tasks:** `GET /tasks/stage/:id`, POST/PATCH/DELETE de tarefas no mock.
-- [ ] **Estender mock E2E:** subtasks, to-do e timetrack em `tests/e2e/mock-backend.mjs` conforme as fases forem implementadas.
+- [ ] **Estender mock E2E:** to-do em `tests/e2e/mock-backend.mjs` (subtasks e timetrack já cobertos).
 - [ ] **Forgot-password (unit/RTL):** formulário e estados de sucesso/erro (fluxo feliz E2E depende de e-mail no backend).
 - [ ] **Dashboard (unit/RTL):** `ProjectsSection` / `ToDosSection` (loading, vazio, erro, links).
 - [ ] **Acessibilidade automatizada:** axe (ou similar) nos formulários e shell autenticado.

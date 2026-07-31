@@ -518,6 +518,7 @@ export function ProjectKanban({
           task={selectedTask}
           projectId={projectId}
           sessionUser={session.data}
+          canManageProject={canManage}
           onClose={() => setSelectedTask(null)}
         />
       ) : null}

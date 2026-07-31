@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AppLogo } from "@/components/brand/app-logo";
+import { HeaderActiveTimer } from "@/components/layout/header-active-timer";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { UserMenu } from "@/components/layout/user-menu";
 import type { SessionUser } from "@/lib/session";
@@ -45,6 +46,7 @@ export function AppHeader({ user }: { user: SessionUser }) {
         </div>
 
         <div className="flex items-center gap-3">
+          <HeaderActiveTimer />
           <UserMenu user={user} />
           <ThemeToggle />
         </div>
