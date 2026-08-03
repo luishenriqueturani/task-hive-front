@@ -196,8 +196,11 @@ export function ProjectKanban({
   const [deletingStage, setDeletingStage] = useState<ProjectStage | null>(null);
   const [activeTask, setActiveTask] = useState<TaskSummary | null>(null);
 
+  // Long-press (~delay) no card inteiro — equivalente web ao longPress do RN.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(PointerSensor, {
+      activationConstraint: { delay: 220, tolerance: 8 },
+    }),
   );
 
   const invalidateStages = useCallback(async () => {

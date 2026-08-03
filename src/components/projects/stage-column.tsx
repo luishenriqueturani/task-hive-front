@@ -21,7 +21,7 @@ import {
   tasksByStageQueryKey,
 } from "@/lib/tasks-api";
 import { useSessionUser } from "@/lib/use-session-user";
-import { useTaskCompleteAdvance } from "@/lib/use-task-complete-advance";
+import { useTaskComplete } from "@/lib/use-task-complete";
 import { TaskCard } from "./task-card";
 
 export function StageColumn({
@@ -59,8 +59,7 @@ export function StageColumn({
     queryFn: () => fetchTasksByStage(stage.id),
   });
 
-  const { completeTask, uncompleteTask, busy: completing } =
-    useTaskCompleteAdvance({ stages, stageIndex });
+  const { completeTask, uncompleteTask, busy: completing } = useTaskComplete();
 
   const move = useMutation({
     mutationFn: ({
@@ -167,7 +166,7 @@ export function StageColumn({
 
       <div
         ref={setNodeRef}
-        className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2"
+        className="min-h-[8rem] flex-1 space-y-2 overflow-y-auto p-2"
       >
         {tasks.isPending ? (
           <div
@@ -178,37 +177,39 @@ export function StageColumn({
           <p className="px-1 py-2 text-xs text-red-700 dark:text-red-300">
             Falha ao carregar tarefas.
           </p>
-        ) : (tasks.data ?? []).length === 0 ? (
-          <p className="px-1 py-3 text-center text-xs text-app-muted">
-            Nenhuma tarefa
-          </p>
         ) : (
           <SortableContext items={items} strategy={verticalListSortingStrategy}>
-            <ul className="space-y-2">
-              {(tasks.data ?? []).map((task) => {
-                const canManage = canMoveOrRemoveTask(task, session.data);
-                return (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    canManage={canManage}
-                    canMoveLeft={stageIndex > 0}
-                    canMoveRight={stageIndex < stages.length - 1}
-                    moving={move.isPending}
-                    completing={completing}
-                    onOpen={() => onOpenTask(task)}
-                    onMove={(direction) => move.mutate({ task, direction })}
-                    onToggleComplete={() => {
-                      if (task.completedAt) {
-                        uncompleteTask(task.id, stage.id);
-                      } else {
-                        completeTask(task.id, stage.id);
-                      }
-                    }}
-                  />
-                );
-              })}
-            </ul>
+            {(tasks.data ?? []).length === 0 ? (
+              <p className="flex min-h-[6rem] items-center justify-center px-1 py-3 text-center text-xs text-app-muted">
+                Nenhuma tarefa
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {(tasks.data ?? []).map((task) => {
+                  const canManage = canMoveOrRemoveTask(task, session.data);
+                  return (
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      canManage={canManage}
+                      canMoveLeft={stageIndex > 0}
+                      canMoveRight={stageIndex < stages.length - 1}
+                      moving={move.isPending}
+                      completing={completing}
+                      onOpen={() => onOpenTask(task)}
+                      onMove={(direction) => move.mutate({ task, direction })}
+                      onToggleComplete={() => {
+                        if (task.completedAt) {
+                          uncompleteTask(task.id, stage.id);
+                        } else {
+                          completeTask(task.id, stage.id);
+                        }
+                      }}
+                    />
+                  );
+                })}
+              </ul>
+            )}
           </SortableContext>
         )}
       </div>

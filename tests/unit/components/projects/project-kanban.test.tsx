@@ -258,11 +258,8 @@ describe("ProjectKanban", () => {
     });
   });
 
-  it("conclui tarefa e avança após 1,5s", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const user = userEvent.setup({
-      advanceTimers: vi.advanceTimersByTime,
-    });
+  it("conclui tarefa sem avançar de coluna", async () => {
+    const user = userEvent.setup();
     mockKanbanApi([
       {
         id: "t1",
@@ -287,54 +284,6 @@ describe("ProjectKanban", () => {
       );
     });
 
-    await vi.advanceTimersByTimeAsync(1600);
-
-    await waitFor(() => {
-      const patches = vi
-        .mocked(fetch)
-        .mock.calls.filter(
-          ([url, init]) =>
-            String(url) === "/api/bff/tasks/t1" &&
-            (init as RequestInit | undefined)?.method === "PATCH",
-        );
-      expect(patches.length).toBeGreaterThan(0);
-      const body = JSON.parse(String(patches.at(-1)?.[1]?.body));
-      expect(body.stageId).toBe("s2");
-      expect(body.completedAt).toBeNull();
-    });
-
-    vi.useRealTimers();
-  });
-
-  it("na última coluna conclui sem avançar", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const user = userEvent.setup({
-      advanceTimers: vi.advanceTimersByTime,
-    });
-    mockKanbanApi([
-      {
-        id: "t1",
-        name: "Final",
-        order: 0,
-        completedAt: null,
-        stage: { id: "s2", name: "Feito", order: 1 },
-        user: { id: "u1" },
-      },
-    ]);
-    renderWithProviders(<ProjectKanban projectId="p1" canManage />);
-
-    await screen.findByText("Final");
-    await user.click(screen.getByRole("button", { name: /Concluir Final/i }));
-
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalledWith(
-        "/api/bff/tasks/t1/completions",
-        expect.objectContaining({ method: "POST" }),
-      );
-    });
-
-    await vi.advanceTimersByTimeAsync(1600);
-
     const patches = vi
       .mocked(fetch)
       .mock.calls.filter(
@@ -343,6 +292,5 @@ describe("ProjectKanban", () => {
           (init as RequestInit | undefined)?.method === "PATCH",
       );
     expect(patches).toHaveLength(0);
-    vi.useRealTimers();
   });
 });
