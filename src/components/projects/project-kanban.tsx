@@ -245,6 +245,12 @@ export function ProjectKanban({
   } | null>(null);
   const [deletingStage, setDeletingStage] = useState<ProjectStage | null>(null);
   const [activeTask, setActiveTask] = useState<TaskSummary | null>(null);
+  // Origem fixa no início do drag — `active.data.stageId` muda no onDragOver
+  // (cache optimista) e não pode ser usado no onDragEnd para chamar a API.
+  const dragOriginRef = useRef<{
+    stageId: string;
+    index: number;
+  } | null>(null);
 
   // Long-press (~delay) no card inteiro — equivalente web ao longPress do RN.
   const sensors = useSensors(
@@ -304,6 +310,9 @@ export function ProjectKanban({
   const onDragStart = (event: DragStartEvent) => {
     const found = findTaskInCaches(queryClient, stageIds, event.active.id);
     setActiveTask(found?.task ?? null);
+    dragOriginRef.current = found
+      ? { stageId: found.stageId, index: found.index }
+      : null;
   };
 
   const onDragOver = (event: DragOverEvent) => {
@@ -350,8 +359,21 @@ export function ProjectKanban({
 
   const onDragEnd = async (event: DragEndEvent) => {
     setActiveTask(null);
+    const origin = dragOriginRef.current;
+    dragOriginRef.current = null;
     const { active, over } = event;
-    if (!over) {
+
+    const invalidateTouched = async (...ids: string[]) => {
+      await Promise.all(
+        [...new Set(ids.filter(Boolean))].map((id) =>
+          queryClient.invalidateQueries({
+            queryKey: tasksByStageQueryKey(id),
+          }),
+        ),
+      );
+    };
+
+    if (!over || !origin) {
       await Promise.all(
         stageIds.map((id) =>
           queryClient.invalidateQueries({
@@ -363,12 +385,7 @@ export function ProjectKanban({
     }
 
     const activeId = String(active.id);
-    const originStageId =
-      (active.data.current as { stageId?: string } | undefined)?.stageId ??
-      null;
-
-    const activeLoc = findTaskInCaches(queryClient, stageIds, activeId);
-    if (!activeLoc) return;
+    const fromStage = origin.stageId;
 
     const target = resolveDropTarget(
       String(over.id),
@@ -376,32 +393,30 @@ export function ProjectKanban({
       stageIds,
       queryClient,
     );
-    const targetStageId = target?.stageId ?? activeLoc.stageId;
-    const targetIndex = target?.index ?? activeLoc.index;
-    const fromStage = originStageId ?? activeLoc.stageId;
+    const targetStageId = target?.stageId ?? fromStage;
 
-    // Se onDragOver já moveu no cache, o índice actual na coluna destino é o correcto.
+    // Cross-column: onDragOver já reordenou o cache — usa a posição actual.
+    // Same-column: o cache costuma estar intacto; usa o índice do alvo do drop.
     const destList =
       queryClient.getQueryData<TaskSummary[]>(
         tasksByStageQueryKey(targetStageId),
       ) ?? [];
-    const currentIndex = destList.findIndex((t) => t.id === activeId);
-    const finalIndex = currentIndex >= 0 ? currentIndex : targetIndex;
+    const optimisticIndex = destList.findIndex((t) => t.id === activeId);
+    const finalIndex =
+      targetStageId !== fromStage
+        ? optimisticIndex >= 0
+          ? optimisticIndex
+          : (target?.index ?? 0)
+        : (target?.index ?? origin.index);
 
     try {
       if (targetStageId !== fromStage) {
         await moveTaskToStage(activeId, targetStageId, finalIndex);
-      } else if (finalIndex !== activeLoc.index) {
+      } else if (finalIndex !== origin.index) {
         await updateTask(activeId, { order: finalIndex });
       }
     } finally {
-      await Promise.all(
-        [...new Set([fromStage, targetStageId, activeLoc.stageId])].map((id) =>
-          queryClient.invalidateQueries({
-            queryKey: tasksByStageQueryKey(id),
-          }),
-        ),
-      );
+      await invalidateTouched(fromStage, targetStageId);
     }
   };
 
