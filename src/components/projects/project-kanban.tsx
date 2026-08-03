@@ -5,8 +5,11 @@ import {
   DragOverlay,
   PointerSensor,
   closestCorners,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -169,6 +172,53 @@ function findTaskInCaches(
   return null;
 }
 
+/** Prefere o ponteiro / intersecção — `closestCorners` falha em colunas vazias. */
+const kanbanCollisionDetection: CollisionDetection = (args) => {
+  const pointerHits = pointerWithin(args);
+  if (pointerHits.length > 0) return pointerHits;
+  const rectHits = rectIntersection(args);
+  if (rectHits.length > 0) return rectHits;
+  return closestCorners(args);
+};
+
+function resolveDropTarget(
+  overId: string,
+  overData: unknown,
+  stageIds: string[],
+  queryClient: ReturnType<typeof useQueryClient>,
+): { stageId: string; index: number } | null {
+  const data = overData as { type?: string; stageId?: string } | undefined;
+  if (data?.type === "column" && data.stageId) {
+    const dest =
+      queryClient.getQueryData<TaskSummary[]>(
+        tasksByStageQueryKey(data.stageId),
+      ) ?? [];
+    return { stageId: data.stageId, index: dest.length };
+  }
+
+  if (overId.startsWith("column-")) {
+    const stageId = overId.slice("column-".length);
+    if (!stageIds.includes(stageId)) return null;
+    const dest =
+      queryClient.getQueryData<TaskSummary[]>(
+        tasksByStageQueryKey(stageId),
+      ) ?? [];
+    return { stageId, index: dest.length };
+  }
+
+  if (stageIds.includes(overId)) {
+    const dest =
+      queryClient.getQueryData<TaskSummary[]>(
+        tasksByStageQueryKey(overId),
+      ) ?? [];
+    return { stageId: overId, index: dest.length };
+  }
+
+  const overLoc = findTaskInCaches(queryClient, stageIds, overId);
+  if (!overLoc) return null;
+  return { stageId: overLoc.stageId, index: overLoc.index };
+}
+
 /**
  * Quadro kanban: colunas + DnD + composer. Gestão de colunas quando `canManage`.
  */
@@ -261,32 +311,25 @@ export function ProjectKanban({
     if (!over) return;
 
     const activeId = String(active.id);
-    const overId = String(over.id);
-
     const activeLoc = findTaskInCaches(queryClient, stageIds, activeId);
     if (!activeLoc) return;
 
-    let overStageId: string | null = null;
-    let overIndex = -1;
+    const target = resolveDropTarget(
+      String(over.id),
+      over.data.current,
+      stageIds,
+      queryClient,
+    );
+    if (!target || target.stageId === activeLoc.stageId) return;
 
-    if (stageIds.includes(overId)) {
-      overStageId = overId;
-      const dest =
-        queryClient.getQueryData<TaskSummary[]>(
-          tasksByStageQueryKey(overId),
-        ) ?? [];
-      overIndex = dest.length;
-    } else {
-      const overLoc = findTaskInCaches(queryClient, stageIds, overId);
-      if (!overLoc) return;
-      overStageId = overLoc.stageId;
-      overIndex = overLoc.index;
-    }
-
-    if (!overStageId || activeLoc.stageId === overStageId) return;
+    // Em coluna vazia (ou drop no contentor), vai para o fim; sobre um card, usa o índice dele.
+    const overIsColumn =
+      (over.data.current as { type?: string } | undefined)?.type === "column" ||
+      String(over.id).startsWith("column-");
+    const overIndex = overIsColumn ? target.index : target.index;
 
     const sourceKey = tasksByStageQueryKey(activeLoc.stageId);
-    const destKey = tasksByStageQueryKey(overStageId);
+    const destKey = tasksByStageQueryKey(target.stageId);
     const source =
       queryClient.getQueryData<TaskSummary[]>(sourceKey)?.slice() ?? [];
     const dest = queryClient.getQueryData<TaskSummary[]>(destKey)?.slice() ?? [];
@@ -296,11 +339,11 @@ export function ProjectKanban({
     const updated = {
       ...moved,
       stage: {
-        id: overStageId,
-        name: list.find((s) => s.id === overStageId)?.name ?? "",
+        id: target.stageId,
+        name: list.find((s) => s.id === target.stageId)?.name ?? "",
       },
     };
-    dest.splice(overIndex, 0, updated);
+    dest.splice(Math.min(overIndex, dest.length), 0, updated);
     queryClient.setQueryData(sourceKey, source);
     queryClient.setQueryData(destKey, dest);
   };
@@ -320,7 +363,6 @@ export function ProjectKanban({
     }
 
     const activeId = String(active.id);
-    const overId = String(over.id);
     const originStageId =
       (active.data.current as { stageId?: string } | undefined)?.stageId ??
       null;
@@ -328,42 +370,29 @@ export function ProjectKanban({
     const activeLoc = findTaskInCaches(queryClient, stageIds, activeId);
     if (!activeLoc) return;
 
-    let targetStageId = activeLoc.stageId;
-    let targetIndex = activeLoc.index;
-
-    if (stageIds.includes(overId)) {
-      targetStageId = overId;
-      const dest =
-        queryClient.getQueryData<TaskSummary[]>(
-          tasksByStageQueryKey(overId),
-        ) ?? [];
-      const idx = dest.findIndex((t) => t.id === activeId);
-      targetIndex = idx >= 0 ? idx : dest.length;
-    } else {
-      const overLoc = findTaskInCaches(queryClient, stageIds, overId);
-      if (overLoc) {
-        targetStageId = overLoc.stageId;
-        targetIndex = overLoc.index;
-      }
-    }
-
+    const target = resolveDropTarget(
+      String(over.id),
+      over.data.current,
+      stageIds,
+      queryClient,
+    );
+    const targetStageId = target?.stageId ?? activeLoc.stageId;
+    const targetIndex = target?.index ?? activeLoc.index;
     const fromStage = originStageId ?? activeLoc.stageId;
+
+    // Se onDragOver já moveu no cache, o índice actual na coluna destino é o correcto.
+    const destList =
+      queryClient.getQueryData<TaskSummary[]>(
+        tasksByStageQueryKey(targetStageId),
+      ) ?? [];
+    const currentIndex = destList.findIndex((t) => t.id === activeId);
+    const finalIndex = currentIndex >= 0 ? currentIndex : targetIndex;
 
     try {
       if (targetStageId !== fromStage) {
-        await moveTaskToStage(activeId, targetStageId, targetIndex);
-      } else {
-        const list =
-          queryClient.getQueryData<TaskSummary[]>(
-            tasksByStageQueryKey(targetStageId),
-          ) ?? [];
-        const oldIndex = list.findIndex((t) => t.id === activeId);
-        const newIndex = stageIds.includes(overId)
-          ? targetIndex
-          : list.findIndex((t) => t.id === overId);
-        if (oldIndex >= 0 && newIndex >= 0 && oldIndex !== newIndex) {
-          await updateTask(activeId, { order: newIndex });
-        }
+        await moveTaskToStage(activeId, targetStageId, finalIndex);
+      } else if (finalIndex !== activeLoc.index) {
+        await updateTask(activeId, { order: finalIndex });
       }
     } finally {
       await Promise.all(
@@ -406,7 +435,7 @@ export function ProjectKanban({
     >
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={kanbanCollisionDetection}
         onDragStart={onDragStart}
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}

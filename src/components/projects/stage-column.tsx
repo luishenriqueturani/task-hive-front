@@ -50,7 +50,8 @@ export function StageColumn({
   const queryClient = useQueryClient();
   const session = useSessionUser();
   const { setNodeRef, isOver } = useDroppable({
-    id: stage.id,
+    // Prefixo evita colisão com ids de tasks e facilita o hit em coluna vazia.
+    id: `column-${stage.id}`,
     data: { type: "column", stageId: stage.id },
   });
 
@@ -166,7 +167,9 @@ export function StageColumn({
 
       <div
         ref={setNodeRef}
-        className="min-h-[8rem] flex-1 space-y-2 overflow-y-auto p-2"
+        className={`flex min-h-0 flex-1 flex-col overflow-y-auto p-2 ${
+          isOver ? "bg-app-accent/5" : ""
+        }`}
       >
         {tasks.isPending ? (
           <div
@@ -180,11 +183,13 @@ export function StageColumn({
         ) : (
           <SortableContext items={items} strategy={verticalListSortingStrategy}>
             {(tasks.data ?? []).length === 0 ? (
-              <p className="flex min-h-[6rem] items-center justify-center px-1 py-3 text-center text-xs text-app-muted">
-                Nenhuma tarefa
-              </p>
+              <div className="flex min-h-[12rem] flex-1 items-center justify-center rounded-xl border border-dashed border-transparent px-1 py-3">
+                <p className="text-center text-xs text-app-muted">
+                  Nenhuma tarefa
+                </p>
+              </div>
             ) : (
-              <ul className="space-y-2">
+              <ul className="min-h-[12rem] flex-1 space-y-2">
                 {(tasks.data ?? []).map((task) => {
                   const canManage = canMoveOrRemoveTask(task, session.data);
                   return (
