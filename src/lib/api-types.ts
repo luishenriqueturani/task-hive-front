@@ -78,11 +78,22 @@ export interface TaskSummary {
   name: string;
   description?: string | null;
   finishDate?: string | null;
+  /** Estado actual; null/undefined = não concluída agora. */
+  completedAt?: string | null;
+  /** Ordem dentro da coluna (menor = mais acima). */
+  order?: number;
   stage?: { id: string; name: string; order?: number } | null;
   user?: { id: string; name?: string | null; email?: string } | null;
   createdAt?: string;
   updatedAt?: string | null;
   deletedAt?: string | null;
+}
+
+/** Entrada do histórico de conclusões (`GET /tasks/:id/completions`). */
+export interface TaskCompletionSummary {
+  id: string;
+  completedAt: string;
+  stage: { id: string; name: string; order?: number };
 }
 
 export type ToDoStatus = "TODO" | "DONE" | "CANCELLED" | "PAUSED" | "CREATED";

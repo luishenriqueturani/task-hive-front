@@ -28,7 +28,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         enableSystem
         disableTransitionOnChange
       >
-        {children}
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </ThemeProvider>
     </QueryClientProvider>
   );

@@ -19,12 +19,14 @@ const usersById = new Map();
 const projects = new Map();
 /** @type {Map<string, { id: string, name: string, order: number, projectId: string, deletedAt: string | null }>} */
 const stages = new Map();
-/** @type {Map<string, { id: string, name: string, description: string | null, finishDate: string | null, stageId: string, userId: string, deletedAt: string | null }>} */
+/** @type {Map<string, { id: string, name: string, description: string | null, finishDate: string | null, completedAt: string | null, order: number, stageId: string, userId: string, deletedAt: string | null }>} */
 const tasks = new Map();
 /** @type {Map<string, { id: string, name: string, description: string | null, isCompleted: boolean, taskId: string, responsibleId: string, deletedAt: string | null }>} */
 const subtasks = new Map();
 /** @type {Map<string, { id: string, taskId: string, userId: string, start: string, end: string | null }>} */
 const timetracks = new Map();
+/** @type {Map<string, { id: string, taskId: string, stageId: string, completedAt: string }>} */
+const taskCompletions = new Map();
 /** @type {Map<string, object>} */
 const todos = new Map();
 let projectSeq = 1n;
@@ -33,6 +35,7 @@ let taskSeq = 1n;
 let subtaskSeq = 1n;
 let timetrackSeq = 1n;
 let todoSeq = 1n;
+let completionSeq = 1n;
 
 function nextRecurringDate(type) {
   const d = new Date();
@@ -114,6 +117,8 @@ function taskView(task) {
     name: task.name,
     description: task.description,
     finishDate: task.finishDate,
+    completedAt: task.completedAt ?? null,
+    order: task.order ?? 0,
     stage: stage
       ? { id: stage.id, name: stage.name, order: stage.order }
       : null,
@@ -122,6 +127,37 @@ function taskView(task) {
     updatedAt: null,
     deletedAt: task.deletedAt,
   };
+}
+
+function reindexStageTasks(stageId) {
+  const list = [...tasks.values()]
+    .filter((t) => t.stageId === stageId && !t.deletedAt)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
+  list.forEach((t, i) => {
+    t.order = i;
+  });
+}
+
+function placeTaskInStage(task, targetStageId, index) {
+  const sourceStageId = task.stageId;
+  const siblings = [...tasks.values()]
+    .filter(
+      (t) =>
+        t.stageId === targetStageId && !t.deletedAt && t.id !== task.id,
+    )
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id));
+  const insertAt =
+    index === undefined || index === null
+      ? siblings.length
+      : Math.max(0, Math.min(Number(index), siblings.length));
+  siblings.splice(insertAt, 0, task);
+  task.stageId = targetStageId;
+  siblings.forEach((t, i) => {
+    t.order = i;
+  });
+  if (sourceStageId !== targetStageId) {
+    reindexStageTasks(sourceStageId);
+  }
 }
 
 function registerUser(user) {
@@ -683,6 +719,10 @@ const server = http.createServer(async (req, res) => {
       const stageId = tasksByStage[1];
       const list = [...tasks.values()]
         .filter((t) => t.stageId === stageId && !t.deletedAt)
+        .sort(
+          (a, b) =>
+            (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id),
+        )
         .map(taskView);
       return send(res, 200, list);
     }
@@ -711,17 +751,75 @@ const server = http.createServer(async (req, res) => {
         return send(res, 422, { message: "should not be empty" });
       }
       const id = String(taskSeq++);
+      const maxOrder = Math.max(
+        -1,
+        ...[...tasks.values()]
+          .filter((t) => t.stageId === stage.id && !t.deletedAt)
+          .map((t) => t.order ?? 0),
+      );
       const task = {
         id,
         name: body.name.trim(),
         description: null,
         finishDate: null,
+        completedAt: null,
+        order: maxOrder + 1,
         stageId: stage.id,
         userId: user.id,
         deletedAt: null,
       };
       tasks.set(id, task);
       return send(res, 201, taskView(task));
+    }
+
+    const completionsMatch = /^\/tasks\/([^/]+)\/completions$/.exec(path);
+    if (completionsMatch) {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      const task = tasks.get(completionsMatch[1]);
+      if (!task || task.deletedAt) {
+        return send(res, 400, { message: "Task not found" });
+      }
+      const canMove =
+        task.userId === user.id ||
+        user.role === "ADMIN_GOD" ||
+        user.role === "ADMIN_COLLABORATOR";
+
+      if (req.method === "GET") {
+        const list = [...taskCompletions.values()]
+          .filter((c) => c.taskId === task.id)
+          .sort((a, b) => b.completedAt.localeCompare(a.completedAt))
+          .map((c) => {
+            const stage = stages.get(c.stageId);
+            return {
+              id: c.id,
+              completedAt: c.completedAt,
+              stage: stage
+                ? { id: stage.id, name: stage.name, order: stage.order }
+                : { id: c.stageId, name: "?" },
+            };
+          });
+        return send(res, 200, list);
+      }
+
+      if (req.method === "POST") {
+        if (!canMove) {
+          return send(res, 403, { message: "Forbidden resource" });
+        }
+        if (task.completedAt) {
+          return send(res, 400, { message: "Tarefa já está concluída" });
+        }
+        const completedAt = new Date().toISOString();
+        task.completedAt = completedAt;
+        const cid = String(completionSeq++);
+        taskCompletions.set(cid, {
+          id: cid,
+          taskId: task.id,
+          stageId: task.stageId,
+          completedAt,
+        });
+        return send(res, 201, taskView(task));
+      }
     }
 
     const subtasksByTask = /^\/subtasks\/task\/([^/]+)$/.exec(path);
@@ -917,7 +1015,11 @@ const server = http.createServer(async (req, res) => {
     }
 
     const taskMatch = /^\/tasks\/([^/]+)$/.exec(path);
-    if (taskMatch && !path.includes("/timetrack")) {
+    if (
+      taskMatch &&
+      !path.includes("/timetrack") &&
+      !path.includes("/completions")
+    ) {
       const user = bearerUser(req);
       if (!user) return send(res, 401, { message: "Unauthorized" });
       const task = tasks.get(taskMatch[1]);
@@ -935,6 +1037,14 @@ const server = http.createServer(async (req, res) => {
 
       if (req.method === "PATCH") {
         const body = await readBody(req);
+        if (
+          body?.completedAt !== undefined &&
+          body.completedAt !== null
+        ) {
+          return send(res, 400, {
+            message: "Use POST /tasks/:id/completions para concluir",
+          });
+        }
         if (canMove) {
           if (body?.name !== undefined) task.name = body.name;
           if (body?.description !== undefined) {
@@ -943,15 +1053,35 @@ const server = http.createServer(async (req, res) => {
           if (body?.finishDate !== undefined) {
             task.finishDate = body.finishDate ?? null;
           }
-          if (body?.stageId !== undefined) {
-            const stage = stages.get(String(body.stageId));
+          if (body?.completedAt === null) {
+            task.completedAt = null;
+          }
+          const stageChanging =
+            body?.stageId !== undefined &&
+            String(body.stageId) !== String(task.stageId);
+          const orderChanging = body?.order !== undefined;
+          if (stageChanging || orderChanging) {
+            const targetStageId = stageChanging
+              ? String(body.stageId)
+              : task.stageId;
+            const stage = stages.get(targetStageId);
             if (!stage || stage.deletedAt) {
               return send(res, 400, { message: "Stage not found" });
             }
-            task.stageId = stage.id;
+            placeTaskInStage(
+              task,
+              targetStageId,
+              orderChanging ? body.order : undefined,
+            );
           }
         } else {
-          // participante: só metadados
+          if (
+            body?.stageId !== undefined ||
+            body?.order !== undefined ||
+            body?.completedAt !== undefined
+          ) {
+            return send(res, 403, { message: "Forbidden resource" });
+          }
           if (body?.name !== undefined) task.name = body.name;
           if (body?.description !== undefined) {
             task.description = body.description ?? null;
@@ -967,7 +1097,9 @@ const server = http.createServer(async (req, res) => {
         if (!canMove) {
           return send(res, 403, { message: "Forbidden resource" });
         }
+        const stageId = task.stageId;
         task.deletedAt = new Date().toISOString();
+        reindexStageTasks(stageId);
         return send(res, 200, taskView(task));
       }
     }

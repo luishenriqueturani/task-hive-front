@@ -1,14 +1,20 @@
 "use client";
 
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  closestCorners,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragOverEvent,
+  type DragStartEvent,
+  type UniqueIdentifier,
+} from "@dnd-kit/core";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  FaChevronLeft,
-  FaChevronRight,
-  FaPenToSquare,
-  FaPlus,
-  FaTrashCan,
-} from "react-icons/fa6";
+import { FaPlus } from "react-icons/fa6";
 import {
   FormError,
   FormField,
@@ -26,81 +32,14 @@ import {
   updateStage,
 } from "@/lib/stages-api";
 import {
-  canMoveOrRemoveTask,
-  fetchTasksByStage,
   moveTaskToStage,
   tasksByStageQueryKey,
+  updateTask,
 } from "@/lib/tasks-api";
 import { useSessionUser } from "@/lib/use-session-user";
-import { TaskDetailDrawer } from "./task-detail-drawer";
+import { StageColumn } from "./stage-column";
+import { TaskDetailModal } from "./task-detail-modal";
 import { TaskFormModal } from "./task-form-modal";
-
-const shortDate = new Intl.DateTimeFormat("pt-BR", {
-  day: "2-digit",
-  month: "short",
-});
-
-function TaskCard({
-  task,
-  canMoveLeft,
-  canMoveRight,
-  canManage,
-  onOpen,
-  onMove,
-  moving,
-}: {
-  task: TaskSummary;
-  canMoveLeft: boolean;
-  canMoveRight: boolean;
-  canManage: boolean;
-  onOpen: () => void;
-  onMove: (direction: "prev" | "next") => void;
-  moving: boolean;
-}) {
-  return (
-    <li className="rounded-xl border border-app-border/70 bg-app-surface p-3 shadow-sm">
-      <button
-        type="button"
-        onClick={onOpen}
-        className="w-full cursor-pointer text-left"
-      >
-        <p className="text-sm font-semibold text-app-text">{task.name}</p>
-        {task.description ? (
-          <p className="mt-1 line-clamp-2 text-xs text-app-muted">
-            {task.description}
-          </p>
-        ) : null}
-        {task.finishDate ? (
-          <p className="mt-2 text-[11px] text-app-muted">
-            Até {shortDate.format(new Date(task.finishDate))}
-          </p>
-        ) : null}
-      </button>
-      {canManage ? (
-        <div className="mt-2 flex justify-end gap-1 border-t border-app-border/50 pt-2">
-          <button
-            type="button"
-            disabled={moving || !canMoveLeft}
-            onClick={() => onMove("prev")}
-            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-app-muted transition hover:bg-app-surface-elevated/90 hover:text-app-text disabled:cursor-not-allowed disabled:opacity-35"
-            aria-label={`Mover ${task.name} para a coluna anterior`}
-          >
-            <FaChevronLeft className="h-3 w-3" aria-hidden />
-          </button>
-          <button
-            type="button"
-            disabled={moving || !canMoveRight}
-            onClick={() => onMove("next")}
-            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-app-muted transition hover:bg-app-surface-elevated/90 hover:text-app-text disabled:cursor-not-allowed disabled:opacity-35"
-            aria-label={`Mover ${task.name} para a próxima coluna`}
-          >
-            <FaChevronRight className="h-3 w-3" aria-hidden />
-          </button>
-        </div>
-      ) : null}
-    </li>
-  );
-}
 
 /** Composer estilo Trello: placeholder de coluna que abre o formulário inline. */
 function AddColumnComposer({
@@ -213,175 +152,25 @@ function AddColumnComposer({
   );
 }
 
-function StageColumn({
-  stage,
-  stageIndex,
-  stages,
-  canManageStages,
-  onCreateTask,
-  onOpenTask,
-  onRename,
-  onDelete,
-  onReorder,
-  busyStages,
-}: {
-  stage: ProjectStage;
-  stageIndex: number;
-  stages: ProjectStage[];
-  canManageStages: boolean;
-  onCreateTask: () => void;
-  onOpenTask: (task: TaskSummary) => void;
-  onRename: () => void;
-  onDelete: () => void;
-  onReorder: (direction: "prev" | "next") => void;
-  busyStages: boolean;
-}) {
-  const queryClient = useQueryClient();
-  const session = useSessionUser();
-
-  const tasks = useQuery({
-    queryKey: tasksByStageQueryKey(stage.id),
-    queryFn: () => fetchTasksByStage(stage.id),
-  });
-
-  const move = useMutation({
-    mutationFn: ({
-      task,
-      direction,
-    }: {
-      task: TaskSummary;
-      direction: "prev" | "next";
-    }) => {
-      const target =
-        direction === "prev"
-          ? stages[stageIndex - 1]
-          : stages[stageIndex + 1];
-      if (!target) throw new Error("Não há coluna nesta direção.");
-      return moveTaskToStage(task.id, target.id);
-    },
-    onSuccess: async (_data, vars) => {
-      const target =
-        vars.direction === "prev"
-          ? stages[stageIndex - 1]
-          : stages[stageIndex + 1];
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: tasksByStageQueryKey(stage.id),
-        }),
-        target
-          ? queryClient.invalidateQueries({
-              queryKey: tasksByStageQueryKey(target.id),
-            })
-          : Promise.resolve(),
-      ]);
-    },
-  });
-
-  return (
-    <section className="flex max-h-[min(70vh,52rem)] w-72 shrink-0 flex-col rounded-2xl border border-app-border/70 bg-app-surface/40">
-      <header className="flex items-start justify-between gap-1 border-b border-app-border/60 px-2 py-2.5">
-        <div className="min-w-0 flex-1 px-1">
-          <h3 className="truncate text-sm font-semibold text-app-text">
-            {stage.name}
-          </h3>
-          <p className="text-xs text-app-muted">
-            {tasks.data?.length ?? 0}{" "}
-            {(tasks.data?.length ?? 0) === 1 ? "tarefa" : "tarefas"}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center">
-          {canManageStages ? (
-            <>
-              <button
-                type="button"
-                disabled={busyStages || stageIndex === 0}
-                onClick={() => onReorder("prev")}
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-app-muted transition hover:bg-app-surface-elevated/90 hover:text-app-text disabled:cursor-not-allowed disabled:opacity-35"
-                aria-label={`Mover coluna ${stage.name} para a esquerda`}
-              >
-                <FaChevronLeft className="h-3 w-3" aria-hidden />
-              </button>
-              <button
-                type="button"
-                disabled={busyStages || stageIndex === stages.length - 1}
-                onClick={() => onReorder("next")}
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-app-muted transition hover:bg-app-surface-elevated/90 hover:text-app-text disabled:cursor-not-allowed disabled:opacity-35"
-                aria-label={`Mover coluna ${stage.name} para a direita`}
-              >
-                <FaChevronRight className="h-3 w-3" aria-hidden />
-              </button>
-              <button
-                type="button"
-                disabled={busyStages}
-                onClick={onRename}
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-app-muted transition hover:bg-app-surface-elevated/90 hover:text-app-text disabled:opacity-40"
-                aria-label={`Renomear ${stage.name}`}
-              >
-                <FaPenToSquare className="h-3.5 w-3.5" aria-hidden />
-              </button>
-              <button
-                type="button"
-                disabled={busyStages}
-                onClick={onDelete}
-                className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-app-muted transition hover:bg-red-500/15 hover:text-red-700 disabled:opacity-40 dark:hover:text-red-300"
-                aria-label={`Excluir ${stage.name}`}
-              >
-                <FaTrashCan className="h-3.5 w-3.5" aria-hidden />
-              </button>
-            </>
-          ) : null}
-          <button
-            type="button"
-            onClick={onCreateTask}
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-app-muted transition hover:bg-app-surface-elevated/90 hover:text-app-text"
-            aria-label={`Nova tarefa em ${stage.name}`}
-          >
-            <FaPlus className="h-3.5 w-3.5" aria-hidden />
-          </button>
-        </div>
-      </header>
-
-      <div className="flex-1 space-y-2 overflow-y-auto p-2">
-        {tasks.isPending ? (
-          <div
-            className="h-20 animate-pulse rounded-xl bg-app-surface-elevated/70"
-            aria-hidden
-          />
-        ) : tasks.isError ? (
-          <p className="px-1 py-2 text-xs text-red-700 dark:text-red-300">
-            Falha ao carregar tarefas.
-          </p>
-        ) : (tasks.data ?? []).length === 0 ? (
-          <p className="px-1 py-3 text-center text-xs text-app-muted">
-            Nenhuma tarefa
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {(tasks.data ?? []).map((task) => {
-              const canManage = canMoveOrRemoveTask(task, session.data);
-              return (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  canManage={canManage}
-                  canMoveLeft={stageIndex > 0}
-                  canMoveRight={stageIndex < stages.length - 1}
-                  moving={move.isPending}
-                  onOpen={() => onOpenTask(task)}
-                  onMove={(direction) => move.mutate({ task, direction })}
-                />
-              );
-            })}
-          </ul>
-        )}
-      </div>
-    </section>
-  );
+function findTaskInCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  stageIds: string[],
+  taskId: UniqueIdentifier,
+): { stageId: string; task: TaskSummary; index: number } | null {
+  for (const stageId of stageIds) {
+    const list =
+      queryClient.getQueryData<TaskSummary[]>(tasksByStageQueryKey(stageId)) ??
+      [];
+    const index = list.findIndex((t) => t.id === String(taskId));
+    if (index >= 0) {
+      return { stageId, task: list[index], index };
+    }
+  }
+  return null;
 }
 
 /**
- * Quadro kanban unificado: colunas + tarefas + composer para nova coluna
- * (fluxo tipo Trello). Gestão de colunas quando `canManage`.
+ * Quadro kanban: colunas + DnD + composer. Gestão de colunas quando `canManage`.
  */
 export function ProjectKanban({
   projectId,
@@ -400,9 +189,16 @@ export function ProjectKanban({
 
   const [createStageId, setCreateStageId] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<TaskSummary | null>(null);
-  const [editingStage, setEditingStage] = useState<ProjectStage | null>(null);
-  const [editName, setEditName] = useState("");
+  const [editingStage, setEditingStage] = useState<{
+    stage: ProjectStage;
+    name: string;
+  } | null>(null);
   const [deletingStage, setDeletingStage] = useState<ProjectStage | null>(null);
+  const [activeTask, setActiveTask] = useState<TaskSummary | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+  );
 
   const invalidateStages = useCallback(async () => {
     await queryClient.invalidateQueries({
@@ -413,9 +209,9 @@ export function ProjectKanban({
   const rename = useMutation({
     mutationFn: async () => {
       if (!editingStage) return;
-      const trimmed = editName.trim();
+      const trimmed = editingStage.name.trim();
       if (!trimmed) throw new Error("Informe o nome da coluna.");
-      return updateStage(editingStage.id, { name: trimmed });
+      return updateStage(editingStage.stage.id, { name: trimmed });
     },
     onSuccess: async () => {
       setEditingStage(null);
@@ -449,9 +245,137 @@ export function ProjectKanban({
     onSuccess: () => invalidateStages(),
   });
 
+  const list = stages.data ?? [];
+  const stageIds = list.map((s) => s.id);
+
+  const onDragStart = (event: DragStartEvent) => {
+    const found = findTaskInCaches(queryClient, stageIds, event.active.id);
+    setActiveTask(found?.task ?? null);
+  };
+
+  const onDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = String(active.id);
+    const overId = String(over.id);
+
+    const activeLoc = findTaskInCaches(queryClient, stageIds, activeId);
+    if (!activeLoc) return;
+
+    let overStageId: string | null = null;
+    let overIndex = -1;
+
+    if (stageIds.includes(overId)) {
+      overStageId = overId;
+      const dest =
+        queryClient.getQueryData<TaskSummary[]>(
+          tasksByStageQueryKey(overId),
+        ) ?? [];
+      overIndex = dest.length;
+    } else {
+      const overLoc = findTaskInCaches(queryClient, stageIds, overId);
+      if (!overLoc) return;
+      overStageId = overLoc.stageId;
+      overIndex = overLoc.index;
+    }
+
+    if (!overStageId || activeLoc.stageId === overStageId) return;
+
+    const sourceKey = tasksByStageQueryKey(activeLoc.stageId);
+    const destKey = tasksByStageQueryKey(overStageId);
+    const source =
+      queryClient.getQueryData<TaskSummary[]>(sourceKey)?.slice() ?? [];
+    const dest = queryClient.getQueryData<TaskSummary[]>(destKey)?.slice() ?? [];
+
+    const [moved] = source.splice(activeLoc.index, 1);
+    if (!moved) return;
+    const updated = {
+      ...moved,
+      stage: {
+        id: overStageId,
+        name: list.find((s) => s.id === overStageId)?.name ?? "",
+      },
+    };
+    dest.splice(overIndex, 0, updated);
+    queryClient.setQueryData(sourceKey, source);
+    queryClient.setQueryData(destKey, dest);
+  };
+
+  const onDragEnd = async (event: DragEndEvent) => {
+    setActiveTask(null);
+    const { active, over } = event;
+    if (!over) {
+      await Promise.all(
+        stageIds.map((id) =>
+          queryClient.invalidateQueries({
+            queryKey: tasksByStageQueryKey(id),
+          }),
+        ),
+      );
+      return;
+    }
+
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    const originStageId =
+      (active.data.current as { stageId?: string } | undefined)?.stageId ??
+      null;
+
+    const activeLoc = findTaskInCaches(queryClient, stageIds, activeId);
+    if (!activeLoc) return;
+
+    let targetStageId = activeLoc.stageId;
+    let targetIndex = activeLoc.index;
+
+    if (stageIds.includes(overId)) {
+      targetStageId = overId;
+      const dest =
+        queryClient.getQueryData<TaskSummary[]>(
+          tasksByStageQueryKey(overId),
+        ) ?? [];
+      const idx = dest.findIndex((t) => t.id === activeId);
+      targetIndex = idx >= 0 ? idx : dest.length;
+    } else {
+      const overLoc = findTaskInCaches(queryClient, stageIds, overId);
+      if (overLoc) {
+        targetStageId = overLoc.stageId;
+        targetIndex = overLoc.index;
+      }
+    }
+
+    const fromStage = originStageId ?? activeLoc.stageId;
+
+    try {
+      if (targetStageId !== fromStage) {
+        await moveTaskToStage(activeId, targetStageId, targetIndex);
+      } else {
+        const list =
+          queryClient.getQueryData<TaskSummary[]>(
+            tasksByStageQueryKey(targetStageId),
+          ) ?? [];
+        const oldIndex = list.findIndex((t) => t.id === activeId);
+        const newIndex = stageIds.includes(overId)
+          ? targetIndex
+          : list.findIndex((t) => t.id === overId);
+        if (oldIndex >= 0 && newIndex >= 0 && oldIndex !== newIndex) {
+          await updateTask(activeId, { order: newIndex });
+        }
+      }
+    } finally {
+      await Promise.all(
+        [...new Set([fromStage, targetStageId, activeLoc.stageId])].map((id) =>
+          queryClient.invalidateQueries({
+            queryKey: tasksByStageQueryKey(id),
+          }),
+        ),
+      );
+    }
+  };
+
   if (stages.isPending) {
     return (
-      <section className="mt-6" aria-label="Quadro">
+      <section className="mt-6 flex min-h-0 flex-1 flex-col" aria-label="Quadro">
         <div
           className="h-64 animate-pulse rounded-2xl bg-app-surface-elevated/70"
           aria-hidden
@@ -462,48 +386,64 @@ export function ProjectKanban({
 
   if (stages.isError) {
     return (
-      <section className="mt-6" aria-label="Quadro">
-        <SectionNotice>
-          Não foi possível carregar o quadro.
-        </SectionNotice>
+      <section className="mt-6 flex min-h-0 flex-1 flex-col" aria-label="Quadro">
+        <SectionNotice>Não foi possível carregar o quadro.</SectionNotice>
       </section>
     );
   }
 
-  const list = stages.data ?? [];
   const nextOrder =
     list.length > 0 ? Math.max(...list.map((s) => s.order)) + 1 : 0;
   const busyStages = rename.isPending || remove.isPending || reorder.isPending;
 
   return (
-    <section className="mt-6" aria-label="Quadro">
-      <div className="flex items-stretch gap-3 overflow-x-auto pb-3">
-        {list.map((stage, index) => (
-          <StageColumn
-            key={stage.id}
-            stage={stage}
-            stageIndex={index}
-            stages={list}
-            canManageStages={canManage}
-            onCreateTask={() => setCreateStageId(stage.id)}
-            onOpenTask={setSelectedTask}
-            onRename={() => {
-              setEditingStage(stage);
-              setEditName(stage.name);
-            }}
-            onDelete={() => setDeletingStage(stage)}
-            onReorder={(direction) => reorder.mutate({ stage, direction })}
-            busyStages={busyStages}
-          />
-        ))}
-        {canManage ? (
-          <AddColumnComposer projectId={projectId} nextOrder={nextOrder} />
-        ) : list.length === 0 ? (
-          <SectionNotice>
-            Este projeto ainda não tem colunas.
-          </SectionNotice>
-        ) : null}
-      </div>
+    <section
+      className="mt-6 flex min-h-0 flex-1 flex-col"
+      aria-label="Quadro"
+    >
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={onDragStart}
+        onDragOver={onDragOver}
+        onDragEnd={onDragEnd}
+      >
+        <div className="flex min-h-0 flex-1 items-stretch gap-3 overflow-x-auto pb-3">
+          {list.map((stage, index) => (
+            <StageColumn
+              key={stage.id}
+              stage={stage}
+              stageIndex={index}
+              stages={list}
+              canManageStages={canManage}
+              onCreateTask={() => setCreateStageId(stage.id)}
+              onOpenTask={setSelectedTask}
+              onRename={() => {
+                setEditingStage({ stage, name: stage.name });
+              }}
+              onDelete={() => setDeletingStage(stage)}
+              onReorder={(direction) => reorder.mutate({ stage, direction })}
+              busyStages={busyStages}
+            />
+          ))}
+          {canManage ? (
+            <AddColumnComposer projectId={projectId} nextOrder={nextOrder} />
+          ) : list.length === 0 ? (
+            <SectionNotice>
+              Este projeto ainda não tem colunas.
+            </SectionNotice>
+          ) : null}
+        </div>
+        <DragOverlay>
+          {activeTask ? (
+            <div className="w-72 rounded-xl border border-app-border/70 bg-app-surface p-3 shadow-xl">
+              <p className="text-sm font-semibold text-app-text">
+                {activeTask.name}
+              </p>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {createStageId ? (
         <TaskFormModal
@@ -514,12 +454,13 @@ export function ProjectKanban({
       ) : null}
 
       {selectedTask ? (
-        <TaskDetailDrawer
+        <TaskDetailModal
           task={selectedTask}
           projectId={projectId}
           sessionUser={session.data}
           canManageProject={canManage}
           onClose={() => setSelectedTask(null)}
+          onTaskUpdated={setSelectedTask}
         />
       ) : null}
 
@@ -552,8 +493,13 @@ export function ProjectKanban({
               label="Nome"
               name="name"
               type="text"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
+              value={editingStage.name}
+              onChange={(e) =>
+                setEditingStage({
+                  stage: editingStage.stage,
+                  name: e.target.value,
+                })
+              }
               placeholder="Ex.: Em progresso"
               maxLength={255}
               disabled={rename.isPending}

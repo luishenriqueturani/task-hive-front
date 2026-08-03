@@ -1,8 +1,12 @@
 import { readApiErrorMessage } from "@/lib/api-error";
-import type { TaskSummary } from "@/lib/api-types";
+import type { TaskCompletionSummary, TaskSummary } from "@/lib/api-types";
 
 export function tasksByStageQueryKey(stageId: string) {
   return ["/tasks/stage", stageId] as const;
+}
+
+export function taskCompletionsQueryKey(taskId: string) {
+  return ["/tasks", taskId, "completions"] as const;
 }
 
 async function parseOrThrow<T>(res: Response, fallback: string): Promise<T> {
@@ -41,6 +45,9 @@ export async function updateTask(
     description?: string;
     finishDate?: string;
     stageId?: string;
+    order?: number;
+    /** Apenas `null` para limpar o estado de concluída. */
+    completedAt?: null;
   },
 ): Promise<TaskSummary> {
   const res = await fetch(`/api/bff/tasks/${id}`, {
@@ -89,8 +96,37 @@ export async function deleteTask(id: string): Promise<void> {
 export async function moveTaskToStage(
   taskId: string,
   stageId: string,
+  order?: number,
 ): Promise<TaskSummary> {
-  return updateTask(taskId, { stageId });
+  return updateTask(taskId, {
+    stageId,
+    ...(order !== undefined ? { order } : {}),
+  });
+}
+
+/** Conclui a tarefa (histórico + completedAt). */
+export async function completeTask(taskId: string): Promise<TaskSummary> {
+  const res = await fetch(`/api/bff/tasks/${taskId}/completions`, {
+    method: "POST",
+    credentials: "include",
+  });
+  return parseOrThrow(res, "Não foi possível concluir a tarefa.");
+}
+
+/** Limpa o estado actual de concluída (histórico permanece). */
+export async function clearTaskCompleted(
+  taskId: string,
+): Promise<TaskSummary> {
+  return updateTask(taskId, { completedAt: null });
+}
+
+export async function fetchTaskCompletions(
+  taskId: string,
+): Promise<TaskCompletionSummary[]> {
+  const res = await fetch(`/api/bff/tasks/${taskId}/completions`, {
+    credentials: "include",
+  });
+  return parseOrThrow(res, "Não foi possível carregar o histórico.");
 }
 
 /** Alinhado a `canMoveOrRemoveTask` do backend. */

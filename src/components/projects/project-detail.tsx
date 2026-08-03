@@ -85,43 +85,45 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
   const manageable = canManageProject(project, session.data);
 
   return (
-    <div className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2 px-6 lg:px-10 xl:px-14">
-      <Link
-        href="/projects"
-        className="inline-flex items-center gap-2 text-sm font-medium text-app-accent hover:underline"
-      >
-        <FaArrowLeft className="h-3.5 w-3.5" aria-hidden />
-        Projetos
-      </Link>
+    <div className="relative left-1/2 flex min-h-0 w-screen max-w-[100vw] flex-1 -translate-x-1/2 flex-col px-6 lg:px-10 xl:px-14">
+      <div className="shrink-0">
+        <Link
+          href="/projects"
+          className="inline-flex items-center gap-2 text-sm font-medium text-app-accent hover:underline"
+        >
+          <FaArrowLeft className="h-3.5 w-3.5" aria-hidden />
+          Projetos
+        </Link>
 
-      <div className="mt-4 flex items-start gap-6">
-        <div className="min-w-0 flex-[1.2]">
-          <div className="flex min-w-0 items-center gap-1">
-            <h1 className="truncate text-2xl font-semibold tracking-tight text-app-text">
-              {project.name}
-            </h1>
-            {manageable ? (
-              <ProjectActionsMenu
-                onEdit={() => setEditing(true)}
-                onDelete={() => setConfirmingDelete(true)}
-              />
+        <div className="mt-4 flex items-start gap-6">
+          <div className="min-w-0 flex-[1.2]">
+            <div className="flex min-w-0 items-center gap-1">
+              <h1 className="truncate text-2xl font-semibold tracking-tight text-app-text">
+                {project.name}
+              </h1>
+              {manageable ? (
+                <ProjectActionsMenu
+                  onEdit={() => setEditing(true)}
+                  onDelete={() => setConfirmingDelete(true)}
+                />
+              ) : null}
+            </div>
+            <p className="mt-1 text-sm text-app-muted">
+              Criado em {dateFormatter.format(new Date(project.createdAt))}
+              {project.userOwner
+                ? ` · Dono: ${project.userOwner.name || project.userOwner.email}`
+                : ""}
+            </p>
+
+            {project.description ? (
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-app-muted">
+                {project.description}
+              </p>
             ) : null}
           </div>
-          <p className="mt-1 text-sm text-app-muted">
-            Criado em {dateFormatter.format(new Date(project.createdAt))}
-            {project.userOwner
-              ? ` · Dono: ${project.userOwner.name || project.userOwner.email}`
-              : ""}
-          </p>
 
-          {project.description ? (
-            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-app-muted">
-              {project.description}
-            </p>
-          ) : null}
+          <ProjectParticipants project={project} canManage={manageable} />
         </div>
-
-        <ProjectParticipants project={project} canManage={manageable} />
       </div>
 
       <ProjectKanban projectId={project.id} canManage={manageable} />
