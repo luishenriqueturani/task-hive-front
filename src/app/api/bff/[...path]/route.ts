@@ -15,6 +15,7 @@ const BLOCKED_PATHS = new Set([
   "auth/login",
   "auth/logout",
   "auth/reset-password",
+  "auth/refresh",
 ]);
 
 async function proxy(request: NextRequest, segments: string[]) {
