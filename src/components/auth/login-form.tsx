@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { readApiErrorMessage } from "@/lib/api-error";
+import { safeNextPath } from "@/lib/safe-next-path";
 import {
   FormError,
   FormField,
@@ -27,14 +28,6 @@ async function loginRequest(data: { email: string; password: string }) {
       ),
     );
   }
-}
-
-/** Só aceita caminhos internos para evitar open redirect via `?next=`. */
-function safeNextPath(nextPath?: string): string {
-  if (nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//")) {
-    return nextPath;
-  }
-  return "/dashboard";
 }
 
 /**

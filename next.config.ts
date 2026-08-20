@@ -15,8 +15,30 @@ function hstsEnabled(): boolean {
   const explicit = process.env.ENABLE_HSTS?.trim().toLowerCase();
   if (explicit === "true" || explicit === "1") return true;
   if (explicit === "false" || explicit === "0") return false;
-  // Em production com HTTP doméstico o Compose define ENABLE_HSTS=false.
   return false;
+}
+
+function contentSecurityPolicy(): string {
+  const connectSrc = ["'self'", "ws:", "wss:"];
+  const wsUrl = process.env.PUBLIC_WS_URL?.trim();
+  if (wsUrl) {
+    try {
+      connectSrc.push(new URL(wsUrl).origin);
+    } catch {
+      /* ignora URL inválida */
+    }
+  }
+  return [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self' data:",
+    `connect-src ${connectSrc.join(" ")}`,
+    "frame-ancestors 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
 }
 
 const nextConfig: NextConfig = {
@@ -24,6 +46,10 @@ const nextConfig: NextConfig = {
   async headers() {
     const securityHeaders = [
       ...baseSecurityHeaders,
+      {
+        key: "Content-Security-Policy",
+        value: contentSecurityPolicy(),
+      },
       ...(hstsEnabled()
         ? ([
             {
