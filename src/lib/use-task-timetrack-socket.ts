@@ -44,6 +44,7 @@ export function useTaskTimetrackSocket(taskId: string, enabled = true) {
         const s = io(body.wsUrl, {
           transports: ["websocket"],
           autoConnect: true,
+          withCredentials: true,
         });
         socket = s;
         s.emit("joinTask", { taskId });

@@ -64,12 +64,13 @@ describe("BFF proxy /api/bff/[...path]", () => {
     expect(opts.headers.authorization).toBeUndefined();
   });
 
-  it("bloqueia auth/login, auth/logout e auth/reset-password", async () => {
+  it("bloqueia auth/login, auth/logout, auth/reset-password e auth/refresh", async () => {
     const { POST } = await loadHandlers("tok");
     for (const path of [
       ["auth", "login"],
       ["auth", "logout"],
       ["auth", "reset-password"],
+      ["auth", "refresh"],
     ]) {
       const res = await POST(
         new NextRequest(`http://localhost/api/bff/${path.join("/")}`, {
@@ -113,5 +114,14 @@ describe("BFF proxy /api/bff/[...path]", () => {
       params: Promise.resolve({ path: ["..", "x"] }),
     });
     expect(res.status).toBe(400);
+  });
+
+  it("rejeita paths fora da allowlist (ex.: metrics)", async () => {
+    const { GET } = await loadHandlers("tok");
+    const res = await GET(new NextRequest("http://localhost/api/bff/metrics"), {
+      params: Promise.resolve({ path: ["metrics"] }),
+    });
+    expect(res.status).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

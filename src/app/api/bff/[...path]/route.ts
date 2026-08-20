@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isBffPathAllowed, BFF_BLOCKED_PATHS } from "@/lib/bff-allowlist";
 import { backendBase } from "@/lib/backend";
 import { getSessionToken } from "@/lib/session";
 
@@ -11,12 +12,7 @@ const PATH_SAFE = /^[a-zA-Z0-9/_-]+$/;
  * que gerem o cookie httpOnly; pelo proxy genérico a sessão nunca seria
  * estabelecida e o token vazaria ao navegador.
  */
-const BLOCKED_PATHS = new Set([
-  "auth/login",
-  "auth/logout",
-  "auth/reset-password",
-  "auth/refresh",
-]);
+const BLOCKED_PATHS = BFF_BLOCKED_PATHS;
 
 async function proxy(request: NextRequest, segments: string[]) {
   const joined = segments.join("/");
@@ -29,6 +25,10 @@ async function proxy(request: NextRequest, segments: string[]) {
       { error: `Use /api/${joined} em vez do proxy genérico.` },
       { status: 404 },
     );
+  }
+
+  if (!isBffPathAllowed(joined)) {
+    return NextResponse.json({ error: "Path not allowed" }, { status: 403 });
   }
 
   const base = backendBase();

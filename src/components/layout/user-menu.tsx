@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { FaUser, FaXmark } from "react-icons/fa6";
@@ -129,6 +130,13 @@ export function UserMenu({ user }: { user: SessionUser }) {
             </dl>
 
             <div className="mt-auto space-y-4 pt-6">
+              <Link
+                href="/settings/api-tokens"
+                onClick={close}
+                className="block rounded-lg border border-app-border/70 px-3 py-2 text-sm text-app-text transition hover:bg-app-surface-elevated/90"
+              >
+                Tokens de API
+              </Link>
               <p className="text-xs text-app-muted">
                 Em breve: edição de perfil, foto e preferências.
               </p>
