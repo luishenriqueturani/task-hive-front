@@ -3,7 +3,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { readApiErrorMessage } from "@/lib/api-error";
 import {
   FormError,
@@ -11,6 +11,8 @@ import {
   SubmitButton,
 } from "./form-field";
 import { GeneratePasswordButton } from "./generate-password-button";
+
+const RESET_TOKEN_KEY = "th_reset_token";
 
 async function checkTokenRequest(token: string): Promise<boolean> {
   const res = await fetch("/api/bff/auth/check-token", {
@@ -61,11 +63,24 @@ function InvalidTokenNotice() {
  * Formulário de redefinição de senha: valida o token do link e, em caso de
  * sucesso, o BFF já cria a nova sessão (cookie httpOnly) e redireciona à raiz.
  */
-export function ResetPasswordForm({ token }: { token?: string }) {
+export function ResetPasswordForm({ token: tokenFromUrl }: { token?: string }) {
   const router = useRouter();
+  const [storedToken, setStoredToken] = useState<string | undefined>(() => {
+    if (typeof window === "undefined") return tokenFromUrl;
+    return tokenFromUrl ?? sessionStorage.getItem(RESET_TOKEN_KEY) ?? undefined;
+  });
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!tokenFromUrl) return;
+    sessionStorage.setItem(RESET_TOKEN_KEY, tokenFromUrl);
+    setStoredToken(tokenFromUrl);
+    router.replace("/reset-password");
+  }, [tokenFromUrl, router]);
+
+  const token = storedToken;
 
   const tokenCheck = useQuery({
     queryKey: ["auth", "check-token", token],
@@ -78,6 +93,7 @@ export function ResetPasswordForm({ token }: { token?: string }) {
   const reset = useMutation({
     mutationFn: resetPasswordRequest,
     onSuccess: () => {
+      sessionStorage.removeItem(RESET_TOKEN_KEY);
       setFormError(null);
       router.push("/dashboard");
       router.refresh();

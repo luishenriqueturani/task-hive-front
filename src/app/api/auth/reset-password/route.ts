@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { backendBase } from "@/lib/backend";
-import { SESSION_COOKIE, sessionCookieOptions } from "@/lib/session";
+import { clearSessionCookies, setSessionCookies } from "@/lib/session";
 import type { UserPublicResponseDto } from "@/api/model";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Redefinição de senha via BFF: o backend devolve nova sessão (token + user),
- * igual ao login — o token vai para o cookie httpOnly e só o user à resposta.
- */
 export async function POST(request: NextRequest) {
   const base = backendBase();
   if (!base) {
@@ -48,10 +44,11 @@ export async function POST(request: NextRequest) {
 
   const session = (await upstream.json()) as {
     token?: string;
+    refreshToken?: string;
     user?: UserPublicResponseDto;
   };
 
-  if (!session.token || !session.user) {
+  if (!session.token || !session.refreshToken || !session.user) {
     return NextResponse.json(
       { message: "Resposta inesperada do servidor." },
       { status: 502 },
@@ -59,6 +56,9 @@ export async function POST(request: NextRequest) {
   }
 
   const response = NextResponse.json({ user: session.user });
-  response.cookies.set(SESSION_COOKIE, session.token, sessionCookieOptions);
+  setSessionCookies(response, {
+    token: session.token,
+    refreshToken: session.refreshToken,
+  });
   return response;
 }

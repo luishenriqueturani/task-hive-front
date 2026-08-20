@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
 import { backendBase } from "@/lib/backend";
-import {
-  getSessionToken,
-  SESSION_COOKIE,
-  sessionCookieSecure,
-} from "@/lib/session";
+import { clearSessionCookies, getSessionToken } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Logout BFF: invalida a sessão no backend e limpa o cookie httpOnly.
- * O cookie é sempre removido, mesmo se o backend falhar (sessão já expirada).
+ * Logout BFF: invalida a sessão no backend e limpa cookies httpOnly.
  */
 export async function POST() {
   const token = await getSessionToken();
@@ -29,12 +24,6 @@ export async function POST() {
   }
 
   const response = new NextResponse(null, { status: 204 });
-  response.cookies.set(SESSION_COOKIE, "", {
-    httpOnly: true,
-    secure: sessionCookieSecure(),
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-  });
+  clearSessionCookies(response);
   return response;
 }

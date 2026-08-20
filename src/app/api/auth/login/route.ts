@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { backendBase } from "@/lib/backend";
-import { SESSION_COOKIE, sessionCookieOptions } from "@/lib/session";
+import { setSessionCookies } from "@/lib/session";
 import type { UserPublicResponseDto } from "@/api/model";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Login BFF: autentica no backend e guarda o JWT em cookie httpOnly.
- * O token nunca chega ao JavaScript do navegador — a resposta traz só o user.
+ * Login BFF: autentica no backend e guarda access + refresh em cookies httpOnly.
  */
 export async function POST(request: NextRequest) {
   const base = backendBase();
@@ -36,7 +35,6 @@ export async function POST(request: NextRequest) {
   });
 
   if (!upstream.ok) {
-    // Repassa o erro do backend (ex.: credenciais inválidas) com o mesmo status.
     const text = await upstream.text();
     return new NextResponse(text || null, {
       status: upstream.status,
@@ -49,10 +47,11 @@ export async function POST(request: NextRequest) {
 
   const session = (await upstream.json()) as {
     token?: string;
+    refreshToken?: string;
     user?: UserPublicResponseDto;
   };
 
-  if (!session.token || !session.user) {
+  if (!session.token || !session.refreshToken || !session.user) {
     return NextResponse.json(
       { message: "Resposta de login inesperada do servidor." },
       { status: 502 },
@@ -60,6 +59,9 @@ export async function POST(request: NextRequest) {
   }
 
   const response = NextResponse.json({ user: session.user });
-  response.cookies.set(SESSION_COOKIE, session.token, sessionCookieOptions);
+  setSessionCookies(response, {
+    token: session.token,
+    refreshToken: session.refreshToken,
+  });
   return response;
 }

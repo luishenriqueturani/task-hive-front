@@ -1,14 +1,20 @@
 import { cookies } from "next/headers";
 
 /**
- * Sessão do Task Hive: o JWT emitido pelo backend fica num cookie httpOnly
- * definido apenas por Route Handlers (BFF). O navegador nunca lê o token.
+ * Sessão do Task Hive: access JWT + refresh opaco em cookies httpOnly
+ * definidos apenas por Route Handlers (BFF).
  */
 
 export const SESSION_COOKIE = "th_session";
+export const REFRESH_COOKIE = "th_refresh";
 
-/** Alinhado ao expiresIn padrão do JWT no backend (90 dias). */
-const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 90;
+const ACCESS_MAX_AGE_SECONDS = Number(
+  process.env.SESSION_ACCESS_MAX_AGE_SECONDS ?? 60 * 60,
+);
+
+const REFRESH_MAX_AGE_SECONDS = Number(
+  process.env.SESSION_REFRESH_MAX_AGE_SECONDS ?? 60 * 60 * 24 * 30,
+);
 
 /** Em HTTP doméstico o Compose define SESSION_COOKIE_SECURE=false. */
 export function sessionCookieSecure(): boolean {
@@ -18,14 +24,23 @@ export function sessionCookieSecure(): boolean {
   return process.env.NODE_ENV === "production";
 }
 
-export const sessionCookieOptions = {
+const baseCookie = {
   httpOnly: true,
   get secure() {
     return sessionCookieSecure();
   },
   sameSite: "lax" as const,
   path: "/",
-  maxAge: SESSION_MAX_AGE_SECONDS,
+};
+
+export const sessionCookieOptions = {
+  ...baseCookie,
+  maxAge: ACCESS_MAX_AGE_SECONDS,
+};
+
+export const refreshCookieOptions = {
+  ...baseCookie,
+  maxAge: REFRESH_MAX_AGE_SECONDS,
 };
 
 export interface SessionUser {
@@ -38,6 +53,11 @@ export interface SessionUser {
 export async function getSessionToken(): Promise<string | null> {
   const store = await cookies();
   return store.get(SESSION_COOKIE)?.value ?? null;
+}
+
+export async function getRefreshToken(): Promise<string | null> {
+  const store = await cookies();
+  return store.get(REFRESH_COOKIE)?.value ?? null;
 }
 
 /**
@@ -78,4 +98,23 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const token = await getSessionToken();
   if (!token) return null;
   return decodeSessionUser(token);
+}
+
+export function clearSessionCookies(response: {
+  cookies: {
+    set: (name: string, value: string, options: { maxAge: number; path: string }) => void;
+  };
+}) {
+  response.cookies.set(SESSION_COOKIE, "", { ...sessionCookieOptions, maxAge: 0 });
+  response.cookies.set(REFRESH_COOKIE, "", { ...refreshCookieOptions, maxAge: 0 });
+}
+
+export function setSessionCookies(
+  response: {
+    cookies: { set: (name: string, value: string, options: typeof sessionCookieOptions) => void };
+  },
+  tokens: { token: string; refreshToken: string },
+) {
+  response.cookies.set(SESSION_COOKIE, tokens.token, sessionCookieOptions);
+  response.cookies.set(REFRESH_COOKIE, tokens.refreshToken, refreshCookieOptions);
 }
