@@ -65,7 +65,7 @@ function InvalidTokenNotice() {
  */
 export function ResetPasswordForm({ token: tokenFromUrl }: { token?: string }) {
   const router = useRouter();
-  const [storedToken, setStoredToken] = useState<string | undefined>(() => {
+  const [storedToken] = useState<string | undefined>(() => {
     if (typeof window === "undefined") return tokenFromUrl;
     return tokenFromUrl ?? sessionStorage.getItem(RESET_TOKEN_KEY) ?? undefined;
   });
@@ -76,7 +76,6 @@ export function ResetPasswordForm({ token: tokenFromUrl }: { token?: string }) {
   useEffect(() => {
     if (!tokenFromUrl) return;
     sessionStorage.setItem(RESET_TOKEN_KEY, tokenFromUrl);
-    setStoredToken(tokenFromUrl);
     router.replace("/reset-password");
   }, [tokenFromUrl, router]);
 

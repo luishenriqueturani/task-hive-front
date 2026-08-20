@@ -6,15 +6,18 @@ import { ResetPasswordForm } from "@/components/auth/reset-password-form";
 
 const push = vi.fn();
 const refresh = vi.fn();
+const replace = vi.fn();
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push, refresh }),
+  useRouter: () => ({ push, refresh, replace }),
 }));
 
 describe("ResetPasswordForm", () => {
   beforeEach(() => {
     push.mockReset();
     refresh.mockReset();
+    replace.mockReset();
+    sessionStorage.clear();
     vi.stubGlobal("fetch", vi.fn());
   });
 
