@@ -9,7 +9,7 @@ import type { ProjectParticipant, ProjectSummary, UserRef } from "@/lib/api-type
 import {
   addParticipant,
   fetchParticipants,
-  fetchUsers,
+  searchUsers,
   participantsQueryKey,
   PROJECTS_QUERY_KEY,
   removeParticipant,
@@ -75,9 +75,9 @@ export function ProjectParticipants({
   });
 
   const users = useQuery({
-    queryKey: ["/users"],
-    queryFn: fetchUsers,
-    enabled: adding && canManage,
+    queryKey: ["/users/search", search],
+    queryFn: () => searchUsers(search),
+    enabled: adding && canManage && search.trim().length >= 2,
   });
 
   const invalidate = async () => {
@@ -121,17 +121,8 @@ export function ProjectParticipants({
   }, [participants.data, project.userOwner]);
 
   const candidates = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    const list = (users.data ?? []).filter((u) => !excludedIds.has(u.id));
-    if (!q) return list.slice(0, 20);
-    return list
-      .filter(
-        (u) =>
-          u.email.toLowerCase().includes(q) ||
-          (u.name ?? "").toLowerCase().includes(q),
-      )
-      .slice(0, 20);
-  }, [users.data, excludedIds, search]);
+    return (users.data ?? []).filter((u) => !excludedIds.has(u.id)).slice(0, 20);
+  }, [users.data, excludedIds]);
 
   return (
     <div

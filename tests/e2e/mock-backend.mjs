@@ -354,6 +354,27 @@ const server = http.createServer(async (req, res) => {
       return send(res, 201, publicUser(user));
     }
 
+    if (req.method === "GET" && path === "/users/search") {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      const q = String(url.searchParams.get("q") ?? "").toLowerCase();
+      const list = [...usersById.values()]
+        .filter(
+          (u) =>
+            !q ||
+            u.email.toLowerCase().includes(q) ||
+            u.name.toLowerCase().includes(q),
+        )
+        .map((u) => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          avatar: null,
+          role: u.role,
+        }));
+      return send(res, 200, list);
+    }
+
     if (req.method === "GET" && path === "/users") {
       const user = bearerUser(req);
       if (!user) return send(res, 401, { message: "Unauthorized" });

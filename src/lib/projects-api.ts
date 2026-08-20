@@ -102,9 +102,12 @@ export async function removeParticipant(
   return parseOrThrow(res, "Não foi possível remover o participante.");
 }
 
-/** Lista utilizadores para o seletor de participantes (`GET /users`). */
-export async function fetchUsers(): Promise<UserPublic[]> {
-  const res = await fetch("/api/bff/users", { credentials: "include" });
+/** Lista utilizadores para o seletor de participantes (`GET /users/search?q=`). */
+export async function searchUsers(query: string): Promise<UserPublic[]> {
+  const q = encodeURIComponent(query.trim());
+  const res = await fetch(`/api/bff/users/search?q=${q}`, {
+    credentials: "include",
+  });
   return parseOrThrow(res, "Não foi possível carregar os utilizadores.");
 }
 

@@ -47,6 +47,10 @@ function mockFetch(opts?: {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
 
+    if (url.includes("/users/search") && method === "GET") {
+      return new Response(JSON.stringify(usersList), { status: 200 });
+    }
+
     if (url.includes("/users") && method === "GET") {
       return new Response(JSON.stringify(usersList), { status: 200 });
     }
@@ -172,6 +176,10 @@ describe("ProjectParticipants", () => {
     );
 
     await user.click(await screen.findByRole("button", { name: /Adicionar/i }));
+    await user.type(
+      screen.getByLabelText("Buscar por nome ou e-mail"),
+      "bob",
+    );
     await user.click(await screen.findByRole("button", { name: /Bob/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
