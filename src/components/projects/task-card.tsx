@@ -2,10 +2,8 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useQuery } from "@tanstack/react-query";
 import { FaCheck, FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import type { TaskSummary } from "@/lib/api-types";
-import { fetchSubtasks, subtasksQueryKey } from "@/lib/subtasks-api";
 
 const shortDate = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
@@ -51,14 +49,8 @@ export function TaskCard({
     data: { type: "task", task, stageId: task.stage?.id },
   });
 
-  const subtasks = useQuery({
-    queryKey: subtasksQueryKey(task.id),
-    queryFn: () => fetchSubtasks(task.id),
-    staleTime: 60_000,
-  });
-
-  const doneCount = (subtasks.data ?? []).filter((s) => s.isCompleted).length;
-  const totalCount = subtasks.data?.length ?? 0;
+  const doneCount = task.subtaskDoneCount ?? 0;
+  const totalCount = task.subtaskTotalCount ?? 0;
   const showSubtaskCount = totalCount > 0;
   const showFooter = canManage || showSubtaskCount;
 

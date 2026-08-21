@@ -25,6 +25,17 @@ function translate(message: string): string {
   return message;
 }
 
+/** Erro de resposta HTTP da API/BFF (inclui status para retry/refetch). */
+export class HttpRequestError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "HttpRequestError";
+    this.status = status;
+  }
+}
+
 /** Extrai e traduz a mensagem de um corpo de erro do backend/BFF. */
 export async function readApiErrorMessage(
   res: Response,

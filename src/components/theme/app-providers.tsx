@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { useState, type ReactNode } from "react";
+import { HttpRequestError } from "@/lib/api-error";
 
 /**
  * Provedores do cliente: React Query e tema claro/escuro (next-themes); paleta Soft Pearl no CSS.
@@ -15,6 +16,13 @@ export function AppProviders({ children }: { children: ReactNode }) {
           queries: {
             staleTime: 60 * 1000,
             refetchOnWindowFocus: false,
+            // Evita tempestade de pedidos quando o throttler devolve 429.
+            retry: (failureCount, error) => {
+              if (error instanceof HttpRequestError && error.status === 429) {
+                return false;
+              }
+              return failureCount < 2;
+            },
           },
         },
       }),

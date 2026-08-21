@@ -84,6 +84,9 @@ export interface TaskSummary {
   order?: number;
   stage?: { id: string; name: string; order?: number } | null;
   user?: { id: string; name?: string | null; email?: string } | null;
+  /** Contagens agregadas — presentes em `GET /tasks/stage/:id`. */
+  subtaskDoneCount?: number;
+  subtaskTotalCount?: number;
   createdAt?: string;
   updatedAt?: string | null;
   deletedAt?: string | null;

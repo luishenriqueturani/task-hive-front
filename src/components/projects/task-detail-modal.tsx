@@ -251,7 +251,11 @@ export function TaskDetailModal({
               </div>
             ) : null}
 
-            <TaskSubtasks taskId={localTask.id} sessionUser={sessionUser} />
+            <TaskSubtasks
+              taskId={localTask.id}
+              stageId={localTask.stage?.id}
+              sessionUser={sessionUser}
+            />
             <TaskTimetrack
               taskId={localTask.id}
               sessionUser={sessionUser}

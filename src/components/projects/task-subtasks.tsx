@@ -13,6 +13,7 @@ import {
   subtasksQueryKey,
   updateSubtask,
 } from "@/lib/subtasks-api";
+import { tasksByStageQueryKey } from "@/lib/tasks-api";
 
 /**
  * CRUD inline de subtarefas no detalhe da tarefa.
@@ -20,9 +21,11 @@ import {
  */
 export function TaskSubtasks({
   taskId,
+  stageId,
   sessionUser,
 }: {
   taskId: string;
+  stageId?: string;
   sessionUser: SessionUser | undefined;
 }) {
   const queryClient = useQueryClient();
@@ -36,8 +39,14 @@ export function TaskSubtasks({
     queryFn: () => fetchSubtasks(taskId),
   });
 
-  const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: subtasksQueryKey(taskId) });
+  const invalidate = async () => {
+    await queryClient.invalidateQueries({ queryKey: subtasksQueryKey(taskId) });
+    if (stageId) {
+      await queryClient.invalidateQueries({
+        queryKey: tasksByStageQueryKey(stageId),
+      });
+    }
+  };
 
   const create = useMutation({
     mutationFn: (name: string) => createSubtask({ name, taskId }),

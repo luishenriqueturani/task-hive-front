@@ -1,4 +1,4 @@
-import { readApiErrorMessage } from "@/lib/api-error";
+import { HttpRequestError, readApiErrorMessage } from "@/lib/api-error";
 import type { TaskCompletionSummary, TaskSummary } from "@/lib/api-types";
 
 export function tasksByStageQueryKey(stageId: string) {
@@ -11,7 +11,7 @@ export function taskCompletionsQueryKey(taskId: string) {
 
 async function parseOrThrow<T>(res: Response, fallback: string): Promise<T> {
   if (!res.ok) {
-    throw new Error(await readApiErrorMessage(res, fallback));
+    throw new HttpRequestError(await readApiErrorMessage(res, fallback), res.status);
   }
   return res.json() as Promise<T>;
 }
