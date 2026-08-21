@@ -1,12 +1,7 @@
 import { LoginView } from "@/components/auth/login-view";
 import { safeNextPath } from "@/lib/safe-next-path";
-import {
-  getSessionUser,
-  REFRESH_COOKIE,
-  SESSION_COOKIE,
-} from "@/lib/session";
+import { getSessionUser, getSessionToken, getRefreshToken } from "@/lib/session";
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
@@ -26,10 +21,11 @@ export default async function LoginPage({
     redirect(safeNextPath(next, "/dashboard"));
   }
 
-  const store = await cookies();
-  if (store.get(SESSION_COOKIE) || store.get(REFRESH_COOKIE)) {
-    store.delete(SESSION_COOKIE);
-    store.delete(REFRESH_COOKIE);
+  const hasStaleCookies =
+    (await getSessionToken()) !== null || (await getRefreshToken()) !== null;
+  if (hasStaleCookies) {
+    const qs = next ? `?next=${encodeURIComponent(next)}` : "";
+    redirect(`/api/auth/clear-session${qs}`);
   }
 
   return <LoginView nextPath={next} />;
