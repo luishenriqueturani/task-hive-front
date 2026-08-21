@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { FaRightFromBracket } from "react-icons/fa6";
 
@@ -12,12 +12,14 @@ export function LogoutButton({
   variant?: "compact" | "panel";
 }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const logout = useMutation({
     mutationFn: async () => {
       await fetch("/api/auth/logout", { method: "POST" });
     },
     onSettled: () => {
+      queryClient.clear();
       router.push("/login");
       router.refresh();
     },

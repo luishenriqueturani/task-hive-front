@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
-/** Retorna o utilizador da sessão actual (payload do JWT) ou 401. */
+/** Retorna o utilizador da sessão actual (validado no backend) ou 401. */
 export async function GET() {
   const user = await getSessionUser();
 

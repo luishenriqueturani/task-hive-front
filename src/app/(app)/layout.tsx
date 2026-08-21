@@ -5,7 +5,7 @@ import { getSessionUser } from "@/lib/session";
 
 /**
  * Shell do ambiente autenticado. O guard em `src/proxy.ts` já barra sem
- * cookie; aqui validamos o conteúdo do token (expiração/formato) no servidor.
+ * cookie; aqui validamos a sessão no backend (JWT + sessão activa).
  */
 export default async function AppLayout({
   children,

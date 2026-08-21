@@ -18,6 +18,14 @@ function hstsEnabled(): boolean {
   return false;
 }
 
+function cspHeaderKey(): "Content-Security-Policy" | "Content-Security-Policy-Report-Only" {
+  const reportOnly = process.env.CSP_REPORT_ONLY?.trim().toLowerCase();
+  if (reportOnly === "true" || reportOnly === "1") {
+    return "Content-Security-Policy-Report-Only";
+  }
+  return "Content-Security-Policy";
+}
+
 function contentSecurityPolicy(): string {
   const connectSrc = ["'self'", "ws:", "wss:"];
   const wsUrl = process.env.PUBLIC_WS_URL?.trim();
@@ -47,7 +55,7 @@ const nextConfig: NextConfig = {
     const securityHeaders = [
       ...baseSecurityHeaders,
       {
-        key: "Content-Security-Policy",
+        key: cspHeaderKey(),
         value: contentSecurityPolicy(),
       },
       ...(hstsEnabled()

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { safeNextPath } from "@/lib/safe-next-path";
 import { SESSION_COOKIE } from "@/lib/session";
 
 /**
@@ -38,7 +39,7 @@ export function proxy(request: NextRequest) {
 
   if (isProtected && !hasSession) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", pathname);
+    loginUrl.searchParams.set("next", safeNextPath(pathname, pathname));
     return NextResponse.redirect(loginUrl);
   }
 

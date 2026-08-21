@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { backendBase } from "@/lib/backend";
 
 /**
  * Sessão do Task Hive: access JWT + refresh opaco em cookies httpOnly
@@ -61,9 +62,8 @@ export async function getRefreshToken(): Promise<string | null> {
 }
 
 /**
- * Decodifica o payload do JWT sem verificar assinatura: o cookie é httpOnly e
- * só é gravado pelo BFF a partir da resposta do backend, que continua a
- * validar o token em toda chamada autenticada.
+ * Decodifica o payload do JWT sem verificar assinatura (apenas formato/exp).
+ * Não usar sozinho para autorização — preferir `getSessionUser()`.
  */
 export function decodeSessionUser(token: string): SessionUser | null {
   const parts = token.split(".");
@@ -94,10 +94,52 @@ export function decodeSessionUser(token: string): SessionUser | null {
   }
 }
 
+/** Confirma JWT junto ao backend (AuthGuard valida assinatura e sessão). */
+async function fetchValidatedSessionUser(
+  token: string,
+  userId: string,
+): Promise<SessionUser | null> {
+  const base = backendBase();
+  if (!base) return null;
+
+  try {
+    const res = await fetch(`${base}/users/${encodeURIComponent(userId)}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+
+    const data = (await res.json()) as {
+      id?: string;
+      name?: string | null;
+      email?: string;
+      role?: string | null;
+    };
+    if (!data.id || !data.email) return null;
+
+    return {
+      id: data.id,
+      name: data.name ?? null,
+      email: data.email,
+      role: data.role ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Utilizador da sessão validado pelo backend (não confia só no decode local). */
 export async function getSessionUser(): Promise<SessionUser | null> {
   const token = await getSessionToken();
   if (!token) return null;
-  return decodeSessionUser(token);
+
+  const decoded = decodeSessionUser(token);
+  if (!decoded) return null;
+
+  return fetchValidatedSessionUser(token, decoded.id);
 }
 
 export function clearSessionCookies(response: {
