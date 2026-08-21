@@ -5,10 +5,11 @@ import { SESSION_COOKIE } from "@/lib/session";
 
 /**
  * Guard de rotas (convenção `proxy` do Next.js 16, ex-middleware):
- * - autenticado em /login → redireciona à raiz;
- * - sem sessão em rota privada → redireciona a /login com `next=`.
- * Apenas presença do cookie é verificada aqui; a validade do token é
- * garantida pelo backend em cada chamada via BFF.
+ * - sem sessão (cookie) em rota privada → redireciona a /login com `next=`.
+ *
+ * Não redireciona /login → /dashboard só pelo cookie: cookies inválidos
+ * (JWT expirado, sessão revogada) causavam loop com `(app)/layout.tsx`.
+ * Quem já está autenticado é redireccionado em `login/page.tsx` via backend.
  */
 
 const PROTECTED_PREFIXES = [
@@ -19,19 +20,9 @@ const PROTECTED_PREFIXES = [
   "/dashboard",
 ];
 
-/**
- * Autenticado não precisa destas páginas. `/reset-password` fica de fora:
- * o fluxo cria uma nova sessão e deve funcionar mesmo com cookie presente.
- */
-const GUEST_ONLY_PATHS = ["/login", "/register", "/forgot-password"];
-
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hasSession = request.cookies.has(SESSION_COOKIE);
-
-  if (GUEST_ONLY_PATHS.includes(pathname) && hasSession) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
 
   const isProtected = PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
@@ -55,6 +46,7 @@ export const config = {
     "/to-do/:path*",
     "/companies/:path*",
     "/settings/:path*",
+    "/dashboard",
     "/dashboard/:path*",
   ],
 };
