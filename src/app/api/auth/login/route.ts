@@ -29,7 +29,15 @@ export async function POST(request: NextRequest) {
 
   const upstream = await fetch(`${base}/auth/login`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      ...(request.headers.get("origin")
+        ? { origin: request.headers.get("origin")! }
+        : {}),
+      ...(request.headers.get("referer")
+        ? { referer: request.headers.get("referer")! }
+        : {}),
+    },
     body: JSON.stringify(body),
     cache: "no-store",
   });

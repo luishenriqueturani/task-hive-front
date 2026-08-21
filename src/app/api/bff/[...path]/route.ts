@@ -47,6 +47,10 @@ async function proxy(request: NextRequest, segments: string[]) {
   if (token) forward.authorization = `Bearer ${token}`;
   const accept = request.headers.get("accept");
   if (accept) forward.accept = accept;
+  const origin = request.headers.get("origin");
+  if (origin) forward.origin = origin;
+  const referer = request.headers.get("referer");
+  if (referer) forward.referer = referer;
 
   const method = request.method.toUpperCase();
   let body: ArrayBuffer | undefined;
