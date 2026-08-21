@@ -43,8 +43,13 @@ async function proxy(request: NextRequest, segments: string[]) {
   const targetUrl = `${base}/${joined}${src.search}`;
 
   const forward: Record<string, string> = {};
-  const token = await getSessionToken();
-  if (token) forward.authorization = `Bearer ${token}`;
+  const clientAuth = request.headers.get("authorization");
+  if (clientAuth?.startsWith("Bearer th_pat_")) {
+    forward.authorization = clientAuth;
+  } else {
+    const token = await getSessionToken();
+    if (token) forward.authorization = `Bearer ${token}`;
+  }
   const accept = request.headers.get("accept");
   if (accept) forward.accept = accept;
   const origin = request.headers.get("origin");
