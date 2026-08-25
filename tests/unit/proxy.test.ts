@@ -12,19 +12,17 @@ function makeRequest(path: string, withSession = false): NextRequest {
 }
 
 describe("proxy (guard de rotas)", () => {
-  it("redireciona autenticado de /login para /dashboard", () => {
+  it("permite /login com cookie (redirect autenticado fica em login/page.tsx)", () => {
     const res = proxy(makeRequest("/login", true));
-    expect(res.status).toBe(307);
-    expect(res.headers.get("location")).toBe("http://localhost/dashboard");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("location")).toBeNull();
   });
 
-  it("redireciona autenticado de /register e /forgot-password", () => {
-    expect(proxy(makeRequest("/register", true)).headers.get("location")).toBe(
-      "http://localhost/dashboard",
-    );
+  it("permite /register e /forgot-password com cookie", () => {
+    expect(proxy(makeRequest("/register", true)).headers.get("location")).toBeNull();
     expect(
       proxy(makeRequest("/forgot-password", true)).headers.get("location"),
-    ).toBe("http://localhost/dashboard");
+    ).toBeNull();
   });
 
   it("redireciona sem sessão em rota protegida para /login?next=", () => {
@@ -45,7 +43,6 @@ describe("proxy (guard de rotas)", () => {
 
   it("permite rota protegida com sessão", () => {
     const res = proxy(makeRequest("/projects", true));
-    // NextResponse.next() → status 200 sem Location
     expect(res.headers.get("location")).toBeNull();
     expect(res.status).toBe(200);
   });

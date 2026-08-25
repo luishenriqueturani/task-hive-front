@@ -2,16 +2,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeFakeJwt } from "@tests/helpers/jwt";
 import { SESSION_COOKIE } from "@/lib/session";
 
+const fetchMock = vi.fn();
+
 describe("GET /api/auth/me", () => {
   beforeEach(() => {
     vi.resetModules();
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockReset();
   });
 
   afterEach(() => {
     vi.doUnmock("next/headers");
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
   });
 
   it("retorna o user do cookie", async () => {
+    vi.stubEnv("BACKEND_API_BASE_URL", "http://backend.test");
     const token = makeFakeJwt({
       id: "u1",
       name: "Ana",
@@ -25,6 +32,17 @@ describe("GET /api/auth/me", () => {
           name === SESSION_COOKIE ? { name, value: token } : undefined,
       }),
     }));
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: "u1",
+          name: "Ana",
+          email: "ana@example.com",
+          role: "CLIENT",
+        }),
+        { status: 200 },
+      ),
+    );
 
     const { GET } = await import("@/app/api/auth/me/route");
     const res = await GET();
@@ -37,6 +55,14 @@ describe("GET /api/auth/me", () => {
         role: "CLIENT",
       },
     });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://backend.test/users/u1",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: `Bearer ${token}`,
+        }),
+      }),
+    );
   });
 
   it("retorna 401 sem cookie", async () => {

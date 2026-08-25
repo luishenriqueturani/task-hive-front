@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { ProjectsSection } from "@/components/dashboard/projects-section";
 import { ToDosSection } from "@/components/dashboard/todos-section";
-import { getSessionUser } from "@/lib/session";
+import { requireSessionUser } from "@/lib/redirect-to-login";
 
 export const metadata: Metadata = {
   title: "Painel · Task Hive",
@@ -10,8 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardPage() {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
+  const user = await requireSessionUser();
 
   const firstName = user.name?.trim().split(/\s+/)[0];
 

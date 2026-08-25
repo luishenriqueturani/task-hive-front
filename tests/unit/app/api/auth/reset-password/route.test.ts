@@ -26,7 +26,10 @@ describe("POST /api/auth/reset-password", () => {
     });
     const user = { id: "u1", name: "Ana", email: "a@b.com", role: "CLIENT" };
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ token, user }), { status: 200 }),
+      new Response(
+        JSON.stringify({ token, refreshToken: "refresh-tok", user }),
+        { status: 200 },
+      ),
     );
 
     const { POST } = await import("@/app/api/auth/reset-password/route");

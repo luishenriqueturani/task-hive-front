@@ -1,7 +1,6 @@
-import { redirect } from "next/navigation";
 import { AmbientBackground } from "@/components/layout/ambient-background";
 import { AppHeader } from "@/components/layout/app-header";
-import { getSessionUser } from "@/lib/session";
+import { requireSessionUser } from "@/lib/redirect-to-login";
 
 /**
  * Shell do ambiente autenticado. O guard em `src/proxy.ts` já barra sem
@@ -12,8 +11,7 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
+  const user = await requireSessionUser();
 
   return (
     <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-app-bg">

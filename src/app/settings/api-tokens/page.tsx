@@ -1,10 +1,8 @@
-import { redirect } from "next/navigation";
 import { ApiTokensView } from "@/components/settings/api-tokens-view";
-import { getSessionUser } from "@/lib/session";
+import { requireSessionUser } from "@/lib/redirect-to-login";
 
 export default async function ApiTokensPage() {
-  const user = await getSessionUser();
-  if (!user) redirect("/login?next=/settings/api-tokens");
+  await requireSessionUser("/settings/api-tokens");
 
   return <ApiTokensView />;
 }
