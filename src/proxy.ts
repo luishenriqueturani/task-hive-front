@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { withAuthRedirectHeaders } from "@/lib/auth-redirect-response";
+import { logAuthNavigation } from "@/lib/auth-navigation-log";
 import { loginRedirectUrl } from "@/lib/login-redirect-path";
 import { safeNextPath } from "@/lib/safe-next-path";
 import { SESSION_COOKIE } from "@/lib/session";
@@ -30,9 +32,20 @@ export function proxy(request: NextRequest) {
   );
 
   if (isProtected && !hasSession) {
-    return NextResponse.redirect(
-      loginRedirectUrl(request, safeNextPath(pathname, pathname)),
+    const target = loginRedirectUrl(
+      request,
+      safeNextPath(pathname, pathname),
     );
+
+    logAuthNavigation({
+      context: "proxy",
+      from: request.url,
+      to: target.toString(),
+      method: request.method,
+      extra: { pathname, hasSession },
+    });
+
+    return withAuthRedirectHeaders(NextResponse.redirect(target));
   }
 
   return NextResponse.next();
