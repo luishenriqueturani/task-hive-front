@@ -2,6 +2,8 @@
 
 Roadmap do frontend Next.js. O **backend MVP está concluído** — ver [`../backend/to-do.md`](../backend/to-do.md) e [`../backend/README.md`](../backend/README.md) para o estado da API.
 
+Próxima etapa (SaaS): [`../PLANEJAMENTO-ETAPA-SAAS.md`](../PLANEJAMENTO-ETAPA-SAAS.md) — decisões de produto, quotas e ondas; as tarefas de UI estão na **Fase 8** deste ficheiro.
+
 Convenções de código: [`.cursor/rules/task-hive-conventions.mdc`](.cursor/rules/task-hive-conventions.mdc).
 
 ---
@@ -22,7 +24,7 @@ Convenções de código: [`.cursor/rules/task-hive-conventions.mdc`](.cursor/rul
 
 - [x] **Sessão no BFF:** JWT guardado em cookie httpOnly (`th_session`) via `/api/auth/login`; o proxy BFF injeta `Authorization: Bearer` nas chamadas upstream.
 - [x] **Rotas protegidas:** guard em `src/proxy.ts` (convenção do Next.js 16) — redireciona rotas privadas para `/login?next=...` e `/login` para `/` quando já autenticado.
-- [ ] **Telas de produto restantes:** perfil — kanban/timetrack/to-do já existem.
+- [ ] **Telas de produto restantes:** perfil (Fase 6); landing comercial, PF/CNPJ, convites, planos, admin e suporte (Fase 8).
 
 ---
 
@@ -133,14 +135,12 @@ Objetivo: gestão de tarefas pontuais e recorrentes fora de projetos.
 
 ---
 
-## Fase 6 — Empresas e utilizadores (conforme prioridade)
+## Fase 6 — Perfil do utilizador
 
-O backend tem CRUD básico; permissionamento avançado de empresa está na Fase 5 do backend (futuro).
+Empresas, admin e permissionamento por plano passaram para a **Fase 8** (etapa SaaS). Fica aqui só o perfil, que o plano SaaS deixou no backlog de settings.
 
-- [ ] **Empresas:** listagem e CRUD (`/companies`) — apenas para roles adequados.
-- [ ] **Perfil do utilizador:** `/settings/profile` — editar nome, email (`PATCH /users/:id`).
-- [ ] **Admin (ADMIN_GOD / ADMIN_COLLABORATOR):** gestão de utilizadores se necessário (`GET/POST/PATCH /users`).
-- [ ] **Testes (empresas/perfil):** unit/RTL das telas e permissões por role; E2E smoke de edição de perfil.
+- [ ] **Perfil do utilizador:** `/settings/profile` no shell `(app)` — editar nome, email (`PATCH /users/:id`).
+- [ ] **Testes (perfil):** unit/RTL da tela; E2E smoke de edição de perfil.
 
 ---
 
@@ -188,7 +188,7 @@ Regra: **cada nova tela/feature da Fase 3+ inclui testes unit/RTL na mesma entre
 - [x] **Mock E2E — tasks:** `GET /tasks/stage/:id`, POST/PATCH/DELETE de tarefas no mock.
 - [x] **Estender mock E2E:** subtasks, timetrack e to-do em `tests/e2e/mock-backend.mjs`.
 - [ ] **Forgot-password (unit/RTL):** formulário e estados de sucesso/erro (fluxo feliz E2E depende de e-mail no backend).
-- [ ] **Dashboard (unit/RTL):** `ProjectsSection` / `ToDosSection` (loading, vazio, erro, links).
+- [ ] **Dashboard (unit/RTL):** `ProjectsSection` / `ToDosSection` (loading, vazio, erro, links) — incluir na entrega da Fase 8.3.
 - [ ] **Acessibilidade automatizada:** axe (ou similar) nos formulários e shell autenticado.
 - [ ] **CI:** pipeline com `lint` + `build` + `npm test` + (opcional) `npm run test:e2e`.
 
@@ -201,13 +201,96 @@ Regra: **cada nova tela/feature da Fase 3+ inclui testes unit/RTL na mesma entre
 
 ---
 
+## Fase 8 — Etapa SaaS
+
+Fonte: [`../PLANEJAMENTO-ETAPA-SAAS.md`](../PLANEJAMENTO-ETAPA-SAAS.md). Cada item de UI assume a API da onda correspondente no backend. Actualizar `bff-allowlist.ts` e `proxy.ts` **na mesma entrega** que consumir um path novo. Regenerar Orval (`npm run api:generate`) no fim de cada onda com API.
+
+Onda 0 é só backend (entidades, seed `free-trial`, `PlanQuotaService`). Sem tarefas de UI.
+
+```text
+8.1 → 8.2 → 8.4 → 8.5 → 8.6 → 8.7
+         ↘ 8.3 (landing v1 + coluna to-do) pode paralelo após 8.1
+```
+
+O layout completo do dashboard (duas listas de projectos) depende de **8.2**. A coluna esquerda de to-dos pode começar no fim de **8.1**.
+
+### 8.1 Cadastro PF/CNPJ e bloqueio de to-do (Onda 1)
+
+- [ ] **Sessão hidratada:** `GET /api/auth/me` / `session.ts` passam a expor `accountKind`, `company` e `plan` (`limits` + `usage`). Admins: `plan: null`.
+- [ ] **Registo PF | CNPJ:** toggle em `RegisterForm`. PF: nome, e-mail, senha (CPF opcional). CNPJ: responsável, e-mail, senha, razão social, nome fantasia opcional, CNPJ com máscara e validação client.
+- [ ] **Query `?invite=`:** pré-preencher e-mail no cadastro quando vier de um convite.
+- [ ] **Conta CNPJ sem to-do:** esconder “Tarefas avulsas” no `AppHeader`; não renderizar to-dos no dashboard; `/to-do` redirecciona para `/dashboard`.
+- [ ] **Allowlist / guard:** prefixos necessários desta onda; `proxy.ts` cobre o redirect de `/to-do` para CNPJ (página também pode 404/redirect).
+- [ ] **Testes:** unit/RTL do toggle de registo e da nav sem to-do em CNPJ; E2E smoke cadastro PF e CNPJ.
+
+### 8.2 Convites e projectos próprios vs convidados (Onda 2)
+
+- [ ] **API de listagem:** `GET /projects?scope=owned` e `scope=invited` em paralelo (`projects-api.ts` + TanStack Query).
+- [ ] **Duas secções em `/projects`:** “Meus projectos” (botão criar só aqui) e “Projectos em que fui convidado” (badge “Convidado”, sem criar).
+- [ ] **Convite por e-mail:** em `ProjectParticipants`, campo e-mail + copiar link `/invite/:token`; lista de convites pending + revogar; indicador `used / limit` (`guestUsage`).
+- [ ] **Manter** o atalho actual de adicionar participante por `userId` (user já registado); os dois caminhos respeitam o tecto de convidados.
+- [ ] **Página pública `/invite/[token]`:** nome do projecto; sem sessão → login/cadastro com `next=`; com sessão → Aceitar.
+- [ ] **Allowlist:** prefixo `invites`; matcher `/invite` no `proxy.ts` (página pública — não exigir cookie).
+- [ ] **Testes:** unit/RTL das duas secções e do fluxo de convite; E2E smoke convite + accept.
+
+### 8.3 Dashboard reorganizado e landing v1 (Onda 3)
+
+Pode avançar em paralelo com 8.1 (landing estática e coluna de to-dos). As duas secções de projectos no dashboard dependem de 8.2.
+
+- [ ] **Landing comercial em `/`:** substituir “Em construção”. Header (logo, âncoras Produto/Planos, Entrar / Começar grátis), hero, 3–4 blocos de produto, cards de planos com copy estática (Starter / Pro / Business — ver plano §5.2), CTA, footer placeholder. Com sessão: “Abrir painel”. Componentes em `src/components/landing/`.
+- [ ] **Dashboard duas colunas (só esta página):** esquerda ~280–320px sticky com tarefas avulsas (lista compacta + “Ver todas” → `/to-do`); centro só projectos (próprios em cima, convidados em baixo). CNPJ: sem coluna esquerda, centro à largura. Mobile: to-dos em accordion acima. Alargar o `main` do dashboard (`max-w-7xl` ou full); resto da app pode manter `max-w-6xl`.
+- [ ] **Testes:** unit/RTL de `ProjectsSection` / `ToDosSection` (loading, vazio, erro, links — já pendente na Fase 7.3) e do layout em colunas; E2E smoke da landing pública.
+
+### 8.4 Planos, quotas, cupons e catálogo admin (Onda 4)
+
+- [ ] **Helpers de quota:** `src/lib/plan-quota.ts` + mensagens 402 (`PLAN_LIMIT_PROJECTS`, `PLAN_LIMIT_API_KEYS`, `PLAN_LIMIT_TODOS`, `PLAN_LIMIT_GUESTS`) em `api-error.ts`.
+- [ ] **Limites na UI:** desactivar Criar projecto / Criar to-do / Gerar token / Convidar com tooltip “Limite do plano” e link para `/settings/plan`.
+- [ ] **`/settings/plan`:** plano actual, usage, tabela de upgrade **informativa** (sem checkout).
+- [ ] **PAT:** mostrar `x / max` chaves em `/settings/api-tokens`.
+- [ ] **Landing v2:** cards a partir de `GET /plans`; fallback para copy estática se a API falhar. Toggle PF / Empresa esconde a linha “tarefas avulsas”.
+- [ ] **Admin — planos:** `/admin/plans` — lista + editor de quotas (`maxProjects`, `maxApiKeys`, `maxStandaloneTasks`, `maxProjectGuests`) e CRUD da área de benefícios (`PlanBenefit`). Não apagar plano `isSystem` (`free-trial`).
+- [ ] **Admin — cupons:** `/admin/coupons` — CRUD (código, percent/fixo, datas, tecto de usos, planos aplicáveis) e redemptions.
+- [ ] **Allowlist:** prefixos `plans` e `admin`.
+- [ ] **Testes:** unit/RTL dos botões no limite e dos cards da landing; E2E admin planos (role admin).
+
+### 8.5 Painel admin — utilizadores e empresas (Onda 5)
+
+- [ ] **Shell admin:** grupo `(admin)`, `src/app/(admin)/layout.tsx` — nav lateral (desktop) + header próprios. `requireAdmin()`; `CLIENT` → `notFound()` (não revelar `/admin`). Matcher `/admin` no `proxy.ts`.
+- [ ] **Link Administração** no `UserMenu` quando `ADMIN_GOD` ou `ADMIN_COLLABORATOR`.
+- [ ] **`/admin`:** resumo (nº users, empresas, tickets abertos).
+- [ ] **`/admin/users`:** tabela paginada, busca, filtros (`accountKind`, `planSlug`, `role`), detalhe (usage + projectos), atribuir plano (+ cupom opcional).
+- [ ] **`/admin/companies`:** tabela paginada, busca, filtros, detalhe (owner, projectos, plano), atribuir plano. **Não** usar `GET /users` / `GET /companies` sem paginação; usar `/admin/users` e `/admin/companies`.
+- [ ] **Settings no shell:** mover `/settings/api-tokens` (e `/settings/plan`) para o grupo autenticado com `AppHeader`, se o layout for tocado nesta onda.
+- [ ] **Testes:** unit/RTL das tabelas e do guard de role; E2E `CLIENT` em `/admin` → 404.
+
+### 8.6 Chat de suporte (Onda 6)
+
+- [ ] **Cliente `/support`:** lista de tickets, “Nova conversa”, thread (HTTP para persistir + Socket.IO namespace `/support`, `joinTicket` / `support:message`). Entrada na nav ou no `UserMenu`.
+- [ ] **Admin `/admin/support`:** fila global, assumir ticket, mesmo componente de thread.
+- [ ] **Allowlist:** prefixo `support`.
+- [ ] **Testes:** unit/RTL da lista/thread; E2E smoke cliente abre ticket e admin responde (mock WS no padrão do timetrack).
+
+### 8.7 Fecho frontend (Onda 7)
+
+- [ ] **OpenAPI + Orval** alinhados com a API SaaS; mock E2E (`mock-backend.mjs`) com plans, invites, admin, support e códigos 402.
+- [ ] **Revisão:** IDOR não aplicável no cliente, mas confirmar que `CLIENT` não vê links/rotas admin; contas CNPJ sem qualquer superfície de to-do.
+
+### Fora de âmbito desta fase (backlog)
+
+Checkout/pagamento, números finais do trial, colaboradores internos da empresa (`CompanyMember`), conversão PF → CNPJ, impersonate, upload no suporte. Perfil continua na Fase 6.
+
+---
+
 ## Ordem sugerida de implementação
 
 ```text
-Fase 1 (auth) → Fase 2 (shell) → Fase 3 (kanban) → Fase 4 (timetrack) → Fase 5 (to-do) → Fase 6 → Fase 7
+Fase 1 (auth) → Fase 2 (shell) → Fase 3 (kanban) → Fase 4 (timetrack) → Fase 5 (to-do)
+  → Fase 6 (perfil) e Fase 7 (qualidade) em paralelo com a Fase 8 quando fizer sentido
+  → Fase 8 (SaaS): 8.1 → 8.2 → 8.4 → 8.5 → 8.6 → 8.7
+                    ↘ 8.3 após 8.1 (landing; dashboard completo após 8.2)
 ```
 
-A **Fase 1** desbloqueia todo o resto. A **Fase 3** entrega o valor principal do produto (estilo Trello).
+A **Fase 1** desbloqueia todo o resto. A **Fase 3** entrega o valor principal do produto (estilo Trello). A **Fase 8** é a próxima etapa de produto.
 
 ---
 
@@ -220,6 +303,7 @@ A **Fase 1** desbloqueia todo o resto. A **Fase 3** entrega o valor principal do
 | BFF proxy | `FrontEnd/src/app/api/bff/[...path]/route.ts` |
 | Testes unit/RTL | `FrontEnd/tests/unit/` |
 | Smoke E2E + mock | `FrontEnd/tests/e2e/` |
+| Etapa SaaS (produto + API) | [`../PLANEJAMENTO-ETAPA-SAAS.md`](../PLANEJAMENTO-ETAPA-SAAS.md) |
 | Backend to-do | `backend/to-do.md` |
 | Cobertura E2E backend | `backend/docs/e2e-coverage.md` |
 | Swagger (dev) | `http://localhost:3001/api` |
