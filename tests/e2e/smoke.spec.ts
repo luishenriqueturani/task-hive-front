@@ -29,7 +29,9 @@ test.describe("smoke Task Hive", () => {
     await expect(page.getByText(SEED_EMAIL).first()).toBeVisible();
   });
 
-  test("cadastro faz auto-login", async ({ page }) => {
+  test("cadastro PF faz auto-login e mostra tarefas avulsas", async ({
+    page,
+  }) => {
     const email = `novo-${Date.now()}@taskhive.test`;
     await page.goto("/register");
     await page.getByLabel("Nome", { exact: true }).fill("Nova Pessoa");
@@ -39,6 +41,35 @@ test.describe("smoke Task Hive", () => {
     await page.getByRole("button", { name: "Criar conta" }).click();
     await expect(page).toHaveURL(/\/dashboard/);
     await expect(page.getByRole("button", { name: "Abrir perfil" })).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Tarefas avulsas" }),
+    ).toBeVisible();
+  });
+
+  test("cadastro CNPJ faz auto-login sem tarefas avulsas", async ({
+    page,
+  }) => {
+    const email = `cnpj-${Date.now()}@taskhive.test`;
+    await page.goto("/register");
+    await page.getByRole("radio", { name: /Pessoa jurídica/i }).click();
+    await page.getByLabel("Nome do responsável").fill("Ana Empresa");
+    await page.getByLabel("Razão social").fill("Acme Teste Ltda");
+    await page.getByLabel("CNPJ").fill("11.444.777/0001-61");
+    await page.getByLabel("E-mail", { exact: true }).fill(email);
+    await page.getByLabel("Senha", { exact: true }).fill(SEED_PASSWORD);
+    await page.getByLabel("Confirmar senha", { exact: true }).fill(SEED_PASSWORD);
+    await page.getByRole("button", { name: "Criar conta" }).click();
+    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page.getByRole("button", { name: "Abrir perfil" })).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Tarefas avulsas" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "Tarefas avulsas" }),
+    ).toHaveCount(0);
+
+    await page.goto("/to-do");
+    await expect(page).toHaveURL(/\/dashboard/);
   });
 
   test("CRUD de projetos", async ({ page }) => {

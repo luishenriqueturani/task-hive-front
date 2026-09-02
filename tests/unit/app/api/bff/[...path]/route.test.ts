@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ACCOUNT_KIND } from "@/lib/account-kind";
 import { SESSION_COOKIE } from "@/lib/session";
+import { makeFakeJwt } from "@tests/helpers/jwt";
 
 const fetchMock = vi.fn();
 
@@ -120,6 +122,41 @@ describe("BFF proxy /api/bff/[...path]", () => {
     const { GET } = await loadHandlers("tok");
     const res = await GET(new NextRequest("http://localhost/api/bff/metrics"), {
       params: Promise.resolve({ path: ["metrics"] }),
+    });
+    expect(res.status).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("permite GET /invites/:token (onda 1)", async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ email: "a@b.com" }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const { GET } = await loadHandlers("tok");
+    const res = await GET(
+      new NextRequest("http://localhost/api/bff/invites/token-abc"),
+      { params: Promise.resolve({ path: ["invites", "token-abc"] }) },
+    );
+    expect(res.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://backend.test/invites/token-abc",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("bloqueia /to-do no BFF para conta CNPJ", async () => {
+    const token = makeFakeJwt({
+      id: "user-1",
+      email: "empresa@example.com",
+      role: "CLIENT",
+      accountKind: ACCOUNT_KIND.COMPANY,
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+    const { GET } = await loadHandlers(token);
+    const res = await GET(new NextRequest("http://localhost/api/bff/to-do"), {
+      params: Promise.resolve({ path: ["to-do"] }),
     });
     expect(res.status).toBe(403);
     expect(fetchMock).not.toHaveBeenCalled();

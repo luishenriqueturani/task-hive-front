@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import { ProjectsSection } from "@/components/dashboard/projects-section";
 import { ToDosSection } from "@/components/dashboard/todos-section";
+import { canUseStandaloneTodos } from "@/lib/account-kind";
 import { requireSessionUser } from "@/lib/redirect-to-login";
+import type { SessionUser } from "@/lib/session";
 
 export const metadata: Metadata = {
   title: "Painel · Task Hive",
   description: "Resumo dos seus projetos e tarefas.",
 };
 
-export default async function DashboardPage() {
-  const user = await requireSessionUser();
-
+/** Conteúdo do painel — contas CNPJ não vêem a secção de tarefas avulsas. */
+export function DashboardPageContent({ user }: { user: SessionUser }) {
   const firstName = user.name?.trim().split(/\s+/)[0];
 
   return (
@@ -24,8 +25,13 @@ export default async function DashboardPage() {
 
       <div className="mt-8">
         <ProjectsSection />
-        <ToDosSection />
+        {canUseStandaloneTodos(user.accountKind) ? <ToDosSection /> : null}
       </div>
     </div>
   );
+}
+
+export default async function DashboardPage() {
+  const user = await requireSessionUser();
+  return <DashboardPageContent user={user} />;
 }

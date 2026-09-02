@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  canUseStandaloneTodos,
+  isStandaloneTodosBffPath,
+} from "@/lib/account-kind";
 import { isBffPathAllowed, BFF_BLOCKED_PATHS } from "@/lib/bff-allowlist";
 import { backendBase } from "@/lib/backend";
-import { getSessionToken } from "@/lib/session";
+import { decodeSessionUser, getSessionToken } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +35,21 @@ async function proxy(request: NextRequest, segments: string[]) {
     return NextResponse.json({ error: "Path not allowed" }, { status: 403 });
   }
 
+  const clientAuth = request.headers.get("authorization");
+  let sessionToken: string | null = null;
+  if (clientAuth?.startsWith("Bearer th_pat_")) {
+    sessionToken = null;
+  } else {
+    sessionToken = await getSessionToken();
+  }
+
+  if (isStandaloneTodosBffPath(joined) && sessionToken) {
+    const session = decodeSessionUser(sessionToken);
+    if (session && !canUseStandaloneTodos(session.accountKind)) {
+      return NextResponse.json({ error: "Path not allowed" }, { status: 403 });
+    }
+  }
+
   const base = backendBase();
   if (!base) {
     return NextResponse.json(
@@ -43,12 +62,10 @@ async function proxy(request: NextRequest, segments: string[]) {
   const targetUrl = `${base}/${joined}${src.search}`;
 
   const forward: Record<string, string> = {};
-  const clientAuth = request.headers.get("authorization");
   if (clientAuth?.startsWith("Bearer th_pat_")) {
     forward.authorization = clientAuth;
-  } else {
-    const token = await getSessionToken();
-    if (token) forward.authorization = `Bearer ${token}`;
+  } else if (sessionToken) {
+    forward.authorization = `Bearer ${sessionToken}`;
   }
   const accept = request.headers.get("accept");
   if (accept) forward.accept = accept;

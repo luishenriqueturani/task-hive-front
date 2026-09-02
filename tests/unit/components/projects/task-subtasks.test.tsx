@@ -4,13 +4,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TaskSubtasks } from "@/components/projects/task-subtasks";
 import type { SubtaskSummary } from "@/lib/api-types";
 import { renderWithProviders } from "@tests/helpers/render";
+import { sessionUserFixture } from "@tests/helpers/session-user";
 
-const sessionUser = {
+const sessionUser = sessionUserFixture({
   id: "u1",
   name: "Ana",
   email: "ana@test.com",
   role: "CLIENT",
-};
+});
 
 function mockSubtasksApi(initial: SubtaskSummary[] = []) {
   let items = [...initial];

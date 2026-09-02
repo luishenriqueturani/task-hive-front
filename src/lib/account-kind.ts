@@ -15,3 +15,16 @@ export function isAdminRole(role: string | null | undefined): boolean {
 export function isAccountKind(value: unknown): value is AccountKind {
   return value === ACCOUNT_KIND.INDIVIDUAL || value === ACCOUNT_KIND.COMPANY;
 }
+
+/** Contas CNPJ não usam tarefas avulsas (to-do pessoal). */
+export function canUseStandaloneTodos(accountKind: AccountKind): boolean {
+  return accountKind !== ACCOUNT_KIND.COMPANY;
+}
+
+export function isStandaloneTodosAppPath(pathname: string): boolean {
+  return pathname === "/to-do" || pathname.startsWith("/to-do/");
+}
+
+export function isStandaloneTodosBffPath(joined: string): boolean {
+  return joined === "to-do" || joined.startsWith("to-do/");
+}

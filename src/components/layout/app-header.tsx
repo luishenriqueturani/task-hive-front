@@ -3,6 +3,7 @@ import { AppLogo } from "@/components/brand/app-logo";
 import { HeaderActiveTimer } from "@/components/layout/header-active-timer";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { UserMenu } from "@/components/layout/user-menu";
+import { canUseStandaloneTodos } from "@/lib/account-kind";
 import type { SessionUser } from "@/lib/session";
 
 const NAV_ITEMS = [
@@ -11,8 +12,16 @@ const NAV_ITEMS = [
   { href: "/to-do", label: "Tarefas avulsas", ready: true },
 ];
 
+export function appNavItems(user: Pick<SessionUser, "accountKind">) {
+  return NAV_ITEMS.filter(
+    (item) => item.href !== "/to-do" || canUseStandaloneTodos(user.accountKind),
+  );
+}
+
 /** Cabeçalho do ambiente autenticado: logo, navegação, usuário e ações. */
 export function AppHeader({ user }: { user: SessionUser }) {
+  const navItems = appNavItems(user);
+
   return (
     <header className="relative z-10 border-b border-app-border/80 bg-app-surface/40 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
@@ -20,7 +29,7 @@ export function AppHeader({ user }: { user: SessionUser }) {
           <AppLogo href="/dashboard" linkAriaLabel="Ir ao painel" />
 
           <nav className="hidden items-center gap-1 md:flex" aria-label="Principal">
-            {NAV_ITEMS.map((item) =>
+            {navItems.map((item) =>
               item.ready ? (
                 <Link
                   key={item.href}

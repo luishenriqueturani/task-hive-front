@@ -218,9 +218,9 @@ O layout completo do dashboard (duas listas de projectos) depende de **8.2**. A 
 - [x] **Sessão hidratada:** `GET /api/auth/me` / `session.ts` passam a expor `accountKind`, `company` e `plan` (`limits` + `usage`). Admins: `plan: null`.
 - [x] **Registo PF | CNPJ:** toggle em `RegisterForm`. PF: nome, e-mail, senha (CPF opcional). CNPJ: responsável, e-mail, senha, razão social, nome fantasia opcional, CNPJ com máscara e validação client.
 - [x] **Query `?invite=`:** pré-preencher e-mail no cadastro quando vier de um convite.
-- [ ] **Conta CNPJ sem to-do:** esconder “Tarefas avulsas” no `AppHeader`; não renderizar to-dos no dashboard; `/to-do` redirecciona para `/dashboard`.
-- [ ] **Allowlist / guard:** prefixos necessários desta onda; `proxy.ts` cobre o redirect de `/to-do` para CNPJ (página também pode 404/redirect).
-- [ ] **Testes:** unit/RTL do toggle de registo e da nav sem to-do em CNPJ; E2E smoke cadastro PF e CNPJ.
+- [x] **Conta CNPJ sem to-do:** esconder “Tarefas avulsas” no `AppHeader`; não renderizar to-dos no dashboard; `/to-do` redirecciona para `/dashboard`.
+- [x] **Allowlist / guard:** prefixos necessários desta onda; `proxy.ts` cobre o redirect de `/to-do` para CNPJ (página também pode 404/redirect).
+- [x] **Testes:** unit/RTL do toggle de registo e da nav sem to-do em CNPJ; E2E smoke cadastro PF e CNPJ.
 
 ### 8.2 Convites e projectos próprios vs convidados (Onda 2)
 

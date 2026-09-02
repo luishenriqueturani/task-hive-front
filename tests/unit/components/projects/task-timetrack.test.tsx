@@ -4,17 +4,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TaskTimetrack } from "@/components/projects/task-timetrack";
 import type { TimetrackEntry } from "@/lib/api-types";
 import { renderWithProviders } from "@tests/helpers/render";
+import { sessionUserFixture } from "@tests/helpers/session-user";
 
 vi.mock("@/lib/use-task-timetrack-socket", () => ({
   useTaskTimetrackSocket: vi.fn(),
 }));
 
-const sessionUser = {
+const sessionUser = sessionUserFixture({
   id: "u1",
   name: "Ana",
   email: "ana@test.com",
   role: "CLIENT",
-};
+});
 
 function mockTimetrackApi(initial: TimetrackEntry[] = [], opts?: { listStatus?: number }) {
   let items = [...initial];
@@ -30,7 +31,7 @@ function mockTimetrackApi(initial: TimetrackEntry[] = [], opts?: { listStatus?: 
         start: new Date().toISOString(),
         end: null,
         userId: sessionUser.id,
-        userName: sessionUser.name,
+        userName: sessionUser.name ?? "Ana",
       };
       items = items.map((e) =>
         e.userId === sessionUser.id && e.end == null

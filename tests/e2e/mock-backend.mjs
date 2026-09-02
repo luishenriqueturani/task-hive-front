@@ -218,9 +218,18 @@ function makeJwt(user) {
     name: user.name,
     email: user.email,
     role: user.role,
+    accountKind: user.accountKind || "INDIVIDUAL",
     exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
   });
   return `${header}.${payload}.mocksig`;
+}
+
+function sessionPayload(user) {
+  return {
+    token: makeJwt(user),
+    refreshToken: randomUUID(),
+    user: publicUser(user),
+  };
 }
 
 function publicUser(user) {
@@ -324,7 +333,7 @@ const server = http.createServer(async (req, res) => {
       if (!user || user.password !== body?.password) {
         return send(res, 401, { message: "E-mail ou senha inválidos." });
       }
-      return send(res, 200, { token: makeJwt(user), user: publicUser(user) });
+      return send(res, 200, sessionPayload(user));
     }
 
     if (req.method === "POST" && path === "/auth/logout") {
@@ -347,7 +356,7 @@ const server = http.createServer(async (req, res) => {
       }
       const user = seed;
       user.password = body.password;
-      return send(res, 200, { token: makeJwt(user), user: publicUser(user) });
+      return send(res, 200, sessionPayload(user));
     }
 
     if (req.method === "POST" && path === "/users") {

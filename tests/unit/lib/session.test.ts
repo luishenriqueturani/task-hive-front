@@ -23,6 +23,17 @@ describe("decodeSessionUser", () => {
     });
   });
 
+  it("expõe accountKind COMPANY quando o JWT o traz", () => {
+    const token = makeFakeJwt({
+      id: "user-1",
+      email: "empresa@example.com",
+      role: "CLIENT",
+      accountKind: "COMPANY",
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+    expect(decodeSessionUser(token)?.accountKind).toBe("COMPANY");
+  });
+
   it("retorna null para token expirado", () => {
     const token = makeFakeJwt({
       id: "user-1",
