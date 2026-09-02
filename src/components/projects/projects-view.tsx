@@ -10,11 +10,17 @@ import {
   SectionNotice,
   SectionSkeleton,
 } from "@/components/dashboard/dashboard-section";
+import { PlanLimitHint } from "@/components/plan/plan-limit-hint";
 import type { ProjectSummary } from "@/lib/api-types";
+import {
+  isProjectsLimitReached,
+  PLAN_LIMIT_TOOLTIP,
+} from "@/lib/plan-quota";
 import {
   fetchProjects,
   projectsQueryKey,
 } from "@/lib/projects-api";
+import { useSessionUser } from "@/lib/use-session-user";
 import { ProjectFormModal } from "./project-form-modal";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
@@ -98,6 +104,8 @@ function ProjectsGrid({
 /** Listagem em duas secções: próprios (com criar) e convidados. */
 export function ProjectsView() {
   const [creating, setCreating] = useState(false);
+  const session = useSessionUser();
+  const atProjectLimit = isProjectsLimitReached(session.data?.plan);
 
   const [owned, invited] = useQueries({
     queries: [
@@ -131,14 +139,19 @@ export function ProjectsView() {
           >
             Meus projetos
           </h2>
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            className="flex cursor-pointer items-center gap-2 rounded-lg bg-app-accent px-3 py-2 text-sm font-semibold text-white shadow-md transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2 focus-visible:ring-offset-app-bg sm:px-4"
-          >
-            <FaPlus className="h-3.5 w-3.5" aria-hidden />
-            Novo projeto
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            {atProjectLimit ? <PlanLimitHint /> : null}
+            <button
+              type="button"
+              onClick={() => setCreating(true)}
+              disabled={atProjectLimit}
+              title={atProjectLimit ? PLAN_LIMIT_TOOLTIP : undefined}
+              className="flex cursor-pointer items-center gap-2 rounded-lg bg-app-accent px-3 py-2 text-sm font-semibold text-white shadow-md transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2 focus-visible:ring-offset-app-bg disabled:cursor-not-allowed disabled:opacity-60 sm:px-4"
+            >
+              <FaPlus className="h-3.5 w-3.5" aria-hidden />
+              Novo projeto
+            </button>
+          </div>
         </div>
         <div className="mt-4">
           <ProjectsGrid

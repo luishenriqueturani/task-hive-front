@@ -1,8 +1,20 @@
+import {
+  isPlanLimitCode,
+  type PlanLimitCode,
+} from "@/lib/plan-quota";
+
 /**
  * Tradução das mensagens de erro do backend (class-validator/Nest, em inglês)
  * para pt-BR. Mensagens já em português (ex.: "Usuário não cadastrado")
  * passam intactas pelo fallback.
  */
+
+export const PLAN_LIMIT_MESSAGES: Record<PlanLimitCode, string> = {
+  PLAN_LIMIT_PROJECTS: "Limite de projetos do plano atingido.",
+  PLAN_LIMIT_API_KEYS: "Limite de chaves API do plano atingido.",
+  PLAN_LIMIT_TODOS: "Limite de tarefas avulsas do plano atingido.",
+  PLAN_LIMIT_GUESTS: "Limite de convidados do plano atingido.",
+};
 
 const TRANSLATIONS: Array<[RegExp, string]> = [
   [
@@ -45,7 +57,13 @@ export async function readApiErrorMessage(
   fallback: string,
 ): Promise<string> {
   try {
-    const body = (await res.json()) as { message?: string | string[] };
+    const body = (await res.json()) as {
+      message?: string | string[];
+      code?: string;
+    };
+    if (isPlanLimitCode(body.code)) {
+      return PLAN_LIMIT_MESSAGES[body.code];
+    }
     if (Array.isArray(body.message) && body.message.length > 0) {
       return body.message.map(translate).join(" ");
     }

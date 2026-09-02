@@ -4,8 +4,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { FaPlus, FaTrashCan, FaUserGroup } from "react-icons/fa6";
 import { FormError, FormField } from "@/components/auth/form-field";
+import { PlanLimitHint } from "@/components/plan/plan-limit-hint";
 import { Modal } from "@/components/ui/modal";
 import type { ProjectParticipant, ProjectSummary, UserRef } from "@/lib/api-types";
+import { PLAN_LIMIT_TOOLTIP } from "@/lib/plan-quota";
 import {
   addParticipant,
   fetchParticipants,
@@ -190,7 +192,7 @@ export function ProjectParticipants({
                   setAdding(true);
                 }}
                 disabled={atLimit}
-                title={atLimit ? "Limite do plano" : undefined}
+                title={atLimit ? PLAN_LIMIT_TOOLTIP : undefined}
                 className="flex cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-app-border/80 bg-app-surface/50 px-2.5 py-1 text-xs font-medium text-app-muted transition hover:border-app-accent/50 hover:text-app-text disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <FaPlus className="h-3 w-3" aria-hidden />
@@ -202,7 +204,7 @@ export function ProjectParticipants({
       )}
 
       {canManage && atLimit ? (
-        <p className="text-xs text-app-muted">Limite do plano atingido.</p>
+        <PlanLimitHint className="text-xs text-app-muted" />
       ) : null}
 
       {canManage ? (

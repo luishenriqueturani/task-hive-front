@@ -1,3 +1,5 @@
+import { readApiErrorMessage } from "@/lib/api-error";
+
 export interface PersonalAccessTokenSummary {
   id: string;
   name: string;
@@ -29,7 +31,11 @@ export async function createPersonalAccessToken(data: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error("Não foi possível criar o token.");
+  if (!res.ok) {
+    throw new Error(
+      await readApiErrorMessage(res, "Não foi possível criar o token."),
+    );
+  }
   return (await res.json()) as PersonalAccessTokenCreated;
 }
 

@@ -4,13 +4,27 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TodosView } from "@/components/todos/todos-view";
 import type { ToDoSummary } from "@/lib/api-types";
 import { renderWithProviders } from "@tests/helpers/render";
+import {
+  clientPlanFixture,
+  sessionUserFixture,
+} from "@tests/helpers/session-user";
 
-function mockTodosApi(initial: ToDoSummary[] = []) {
+function mockTodosApi(
+  initial: ToDoSummary[] = [],
+  me = sessionUserFixture(),
+) {
   let items = [...initial];
 
   vi.mocked(fetch).mockImplementation(async (input, init) => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
+
+    if (url.includes("/api/auth/me")) {
+      return new Response(JSON.stringify({ user: me }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
 
     if (url.endsWith("/to-do") && method === "GET") {
       return new Response(JSON.stringify(items), { status: 200 });
@@ -181,5 +195,35 @@ describe("TodosView", () => {
         expect.objectContaining({ method: "PATCH" }),
       );
     });
+  });
+
+  it("desactiva Nova tarefa no tecto do plano", async () => {
+    mockTodosApi(
+      [],
+      sessionUserFixture({
+        plan: clientPlanFixture({
+          usage: {
+            projects: 0,
+            apiKeys: 0,
+            standaloneTasks: 15,
+            projectGuests: null,
+          },
+        }),
+      }),
+    );
+
+    renderWithProviders(<TodosView />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Nova tarefa/i })).toBeDisabled();
+    });
+    expect(screen.getByRole("button", { name: /Nova tarefa/i })).toHaveAttribute(
+      "title",
+      "Limite do plano",
+    );
+    expect(screen.getByRole("link", { name: "Ver planos" })).toHaveAttribute(
+      "href",
+      "/settings/plan",
+    );
   });
 });

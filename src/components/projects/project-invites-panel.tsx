@@ -5,6 +5,7 @@ import { useState } from "react";
 import { FaCopy, FaPaperPlane, FaTrashCan } from "react-icons/fa6";
 import { FormError, FormField, SubmitButton } from "@/components/auth/form-field";
 import type { ProjectInvite } from "@/lib/api-types";
+import { PLAN_LIMIT_TOOLTIP } from "@/lib/plan-quota";
 import {
   createProjectInvite,
   inviteShareUrl,
@@ -69,7 +70,12 @@ export function InviteByEmailForm({
         disabled={invite.isPending || disabled}
       />
       <div className="mt-3">
-        <SubmitButton pending={invite.isPending} pendingLabel="A enviar…">
+        <SubmitButton
+          pending={invite.isPending}
+          pendingLabel="A enviar…"
+          disabled={disabled}
+          title={disabled ? PLAN_LIMIT_TOOLTIP : undefined}
+        >
           <span className="inline-flex items-center gap-2">
             <FaPaperPlane className="h-3.5 w-3.5" aria-hidden />
             Convidar

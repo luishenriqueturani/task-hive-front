@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { readApiErrorMessage } from "@/lib/api-error";
+import { PLAN_LIMIT_MESSAGES, readApiErrorMessage } from "@/lib/api-error";
+import { PLAN_LIMIT_CODE } from "@/lib/plan-quota";
 
 function jsonResponse(body: unknown, status = 400): Response {
   return new Response(JSON.stringify(body), {
@@ -86,5 +87,18 @@ describe("readApiErrorMessage", () => {
         "f",
       ),
     ).toMatch(/não tem permissão/i);
+  });
+
+  it.each([
+    [PLAN_LIMIT_CODE.PROJECTS, PLAN_LIMIT_MESSAGES.PLAN_LIMIT_PROJECTS],
+    [PLAN_LIMIT_CODE.API_KEYS, PLAN_LIMIT_MESSAGES.PLAN_LIMIT_API_KEYS],
+    [PLAN_LIMIT_CODE.TODOS, PLAN_LIMIT_MESSAGES.PLAN_LIMIT_TODOS],
+    [PLAN_LIMIT_CODE.GUESTS, PLAN_LIMIT_MESSAGES.PLAN_LIMIT_GUESTS],
+  ] as const)("mapeia %s em 402", async (code, expected) => {
+    const msg = await readApiErrorMessage(
+      jsonResponse({ code, message: "ignored", limit: 3, used: 3 }, 402),
+      "fallback",
+    );
+    expect(msg).toBe(expected);
   });
 });

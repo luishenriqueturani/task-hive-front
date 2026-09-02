@@ -17,6 +17,7 @@ import {
   type ToDoInput,
   updateTodo,
 } from "@/lib/todos-api";
+import { SESSION_USER_QUERY_KEY } from "@/lib/use-session-user";
 
 function deadlineToInput(iso: string | null | undefined): string {
   if (!iso) return "";
@@ -60,6 +61,11 @@ export function TodoFormModal({
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: TODOS_QUERY_KEY });
+      if (!isEdit) {
+        await queryClient.invalidateQueries({
+          queryKey: SESSION_USER_QUERY_KEY,
+        });
+      }
       onClose();
     },
     onError: (err: unknown) => {

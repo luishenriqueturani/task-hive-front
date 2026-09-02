@@ -13,8 +13,13 @@ import {
   SectionNotice,
   SectionSkeleton,
 } from "@/components/dashboard/dashboard-section";
+import { PlanLimitHint } from "@/components/plan/plan-limit-hint";
 import { Modal } from "@/components/ui/modal";
 import type { ToDoStatus, ToDoSummary, ToDoType } from "@/lib/api-types";
+import {
+  isStandaloneTasksLimitReached,
+  PLAN_LIMIT_TOOLTIP,
+} from "@/lib/plan-quota";
 import {
   advanceRecurringTodo,
   deleteTodo,
@@ -25,6 +30,7 @@ import {
   TODO_TYPE_LABELS,
   TODOS_QUERY_KEY,
 } from "@/lib/todos-api";
+import { useSessionUser } from "@/lib/use-session-user";
 import { TodoFormModal } from "./todo-form-modal";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
@@ -48,6 +54,8 @@ export function TodosView() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("open");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [dialog, setDialog] = useState<DialogState>(null);
+  const session = useSessionUser();
+  const atTodoLimit = isStandaloneTasksLimitReached(session.data?.plan);
 
   const todos = useQuery({
     queryKey: TODOS_QUERY_KEY,
@@ -102,14 +110,19 @@ export function TodosView() {
             Tarefas pontuais e recorrentes fora de projetos.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setDialog({ type: "create" })}
-          className="flex cursor-pointer items-center gap-2 rounded-lg bg-app-accent px-3 py-2 text-sm font-semibold text-white shadow-md transition hover:opacity-95 sm:px-4"
-        >
-          <FaPlus className="h-3.5 w-3.5" aria-hidden />
-          Nova tarefa
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          {atTodoLimit ? <PlanLimitHint /> : null}
+          <button
+            type="button"
+            onClick={() => setDialog({ type: "create" })}
+            disabled={atTodoLimit}
+            title={atTodoLimit ? PLAN_LIMIT_TOOLTIP : undefined}
+            className="flex cursor-pointer items-center gap-2 rounded-lg bg-app-accent px-3 py-2 text-sm font-semibold text-white shadow-md transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60 sm:px-4"
+          >
+            <FaPlus className="h-3.5 w-3.5" aria-hidden />
+            Nova tarefa
+          </button>
+        </div>
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">

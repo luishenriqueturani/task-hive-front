@@ -359,6 +359,13 @@ describe("ProjectParticipants", () => {
 
     expect(await screen.findByText("2 / 2 convidados")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Adicionar/i })).toBeDisabled();
-    expect(screen.getByText(/Limite do plano atingido/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Adicionar/i })).toHaveAttribute(
+      "title",
+      "Limite do plano",
+    );
+    expect(screen.getByRole("link", { name: "Ver planos" })).toHaveAttribute(
+      "href",
+      "/settings/plan",
+    );
   });
 });

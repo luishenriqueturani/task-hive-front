@@ -104,15 +104,20 @@ export function SubmitButton({
   pending,
   pendingLabel,
   children,
+  disabled,
+  title,
 }: {
   pending: boolean;
   pendingLabel: string;
   children: React.ReactNode;
+  disabled?: boolean;
+  title?: string;
 }) {
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={pending || disabled}
+      title={title}
       className="w-full cursor-pointer rounded-lg bg-app-accent px-3 py-2 text-sm font-semibold text-white shadow-md transition hover:opacity-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2 focus-visible:ring-offset-app-surface disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:py-3"
     >
       {pending ? pendingLabel : children}

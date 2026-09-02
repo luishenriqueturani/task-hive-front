@@ -2,6 +2,10 @@ import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "@tests/helpers/render";
+import {
+  clientPlanFixture,
+  sessionUserFixture,
+} from "@tests/helpers/session-user";
 import { ProjectsView } from "@/components/projects/projects-view";
 
 const ownedProject = {
@@ -29,11 +33,19 @@ function mockProjectsApi(opts?: {
   invited?: unknown[];
   ownedStatus?: number;
   invitedStatus?: number;
+  me?: ReturnType<typeof sessionUserFixture>;
 }) {
   const owned = opts?.owned ?? [];
   const invited = opts?.invited ?? [];
+  const me = opts?.me ?? sessionUserFixture();
   vi.mocked(fetch).mockImplementation(async (input) => {
     const url = String(input);
+    if (url.includes("/api/auth/me")) {
+      return new Response(JSON.stringify({ user: me }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    }
     if (url.includes("scope=invited")) {
       const status = opts?.invitedStatus ?? 200;
       return new Response(
@@ -137,5 +149,34 @@ describe("ProjectsView", () => {
     expect(
       screen.getByRole("dialog", { name: "Novo projeto" }),
     ).toBeInTheDocument();
+  });
+
+  it("desactiva Novo projeto no tecto do plano", async () => {
+    mockProjectsApi({
+      me: sessionUserFixture({
+        plan: clientPlanFixture({
+          usage: {
+            projects: 3,
+            apiKeys: 0,
+            standaloneTasks: 0,
+            projectGuests: null,
+          },
+        }),
+      }),
+    });
+
+    renderWithProviders(<ProjectsView />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Novo projeto/i })).toBeDisabled();
+    });
+    expect(screen.getByRole("button", { name: /Novo projeto/i })).toHaveAttribute(
+      "title",
+      "Limite do plano",
+    );
+    expect(screen.getByRole("link", { name: "Ver planos" })).toHaveAttribute(
+      "href",
+      "/settings/plan",
+    );
   });
 });

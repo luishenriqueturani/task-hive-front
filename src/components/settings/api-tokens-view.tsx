@@ -3,12 +3,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { FaPlus, FaTrashCan } from "react-icons/fa6";
+import { PlanLimitHint } from "@/components/plan/plan-limit-hint";
 import {
   createPersonalAccessToken,
   fetchPersonalAccessTokens,
   PAT_QUERY_KEY,
   revokePersonalAccessToken,
 } from "@/lib/personal-access-tokens-api";
+import {
+  isApiKeysLimitReached,
+  PLAN_LIMIT_TOOLTIP,
+} from "@/lib/plan-quota";
+import {
+  SESSION_USER_QUERY_KEY,
+  useSessionUser,
+} from "@/lib/use-session-user";
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
@@ -19,6 +28,8 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
 /** Gestão de tokens de API (PAT) para agentes e integrações. */
 export function ApiTokensView() {
   const queryClient = useQueryClient();
+  const session = useSessionUser();
+  const atKeyLimit = isApiKeysLimitReached(session.data?.plan);
   const [name, setName] = useState("");
   const [createdToken, setCreatedToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,8 +46,14 @@ export function ApiTokensView() {
       setCreatedToken(data.token);
       setError(null);
       void queryClient.invalidateQueries({ queryKey: PAT_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: SESSION_USER_QUERY_KEY });
     },
-    onError: () => setError("Não foi possível criar o token."),
+    onError: (err: unknown) =>
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Não foi possível criar o token.",
+      ),
   });
 
   const revoke = useMutation({
@@ -85,10 +102,17 @@ export function ApiTokensView() {
         </div>
       ) : null}
 
+      {atKeyLimit ? (
+        <div className="mt-4">
+          <PlanLimitHint />
+        </div>
+      ) : null}
+
       <form
         className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end"
         onSubmit={(e) => {
           e.preventDefault();
+          if (atKeyLimit) return;
           setError(null);
           if (!name.trim()) {
             setError("Indique um nome para o token.");
@@ -106,13 +130,14 @@ export function ApiTokensView() {
             placeholder="Ex.: Cursor agent"
             className="w-full rounded-lg border border-app-border bg-app-surface px-3 py-2 text-app-text"
             maxLength={120}
-            disabled={create.isPending}
+            disabled={create.isPending || atKeyLimit}
           />
         </label>
         <button
           type="submit"
-          disabled={create.isPending}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-app-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+          disabled={create.isPending || atKeyLimit}
+          title={atKeyLimit ? PLAN_LIMIT_TOOLTIP : undefined}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-app-accent px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
           <FaPlus className="h-3.5 w-3.5" aria-hidden />
           Criar token

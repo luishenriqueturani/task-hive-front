@@ -10,10 +10,12 @@ async function fetchSessionUser(): Promise<SessionUser> {
   return body.user;
 }
 
+export const SESSION_USER_QUERY_KEY = ["/api/auth/me"] as const;
+
 /** Usuário da sessão atual no cliente (via BFF `/api/auth/me`). */
 export function useSessionUser() {
   return useQuery({
-    queryKey: ["/api/auth/me"],
+    queryKey: SESSION_USER_QUERY_KEY,
     queryFn: fetchSessionUser,
     staleTime: 5 * 60 * 1000,
     retry: false,

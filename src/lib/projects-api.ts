@@ -1,4 +1,5 @@
 import { readApiErrorMessage } from "@/lib/api-error";
+import { isQuotaReached } from "@/lib/plan-quota";
 import type {
   GuestUsage,
   ProjectInvite,
@@ -33,7 +34,7 @@ export function inviteShareUrl(token: string, origin: string) {
 
 export function isGuestLimitReached(usage: GuestUsage | undefined): boolean {
   if (!usage) return false;
-  return usage.limit >= 0 && usage.used >= usage.limit;
+  return isQuotaReached(usage.used, usage.limit);
 }
 
 export interface ProjectInput {

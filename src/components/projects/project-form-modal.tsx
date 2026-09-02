@@ -11,6 +11,7 @@ import {
   updateProject,
   type ProjectInput,
 } from "@/lib/projects-api";
+import { SESSION_USER_QUERY_KEY } from "@/lib/use-session-user";
 
 /**
  * Modal de criação/edição de projeto. Com `project` definido, edita
@@ -35,6 +36,11 @@ export function ProjectFormModal({
       isEdit ? updateProject(project.id, data) : createProject(data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: PROJECTS_QUERY_KEY });
+      if (!isEdit) {
+        await queryClient.invalidateQueries({
+          queryKey: SESSION_USER_QUERY_KEY,
+        });
+      }
       onClose();
     },
     onError: (err: unknown) => {
