@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { logAuthNavigation } from "@/lib/auth-navigation-log";
-import { safeNextPath } from "@/lib/safe-next-path";
+import { loginRedirectPath } from "@/lib/safe-next-path";
 import {
   isBadPublicHostname,
   publicOriginFromRequest,
@@ -8,17 +8,7 @@ import {
   resolvePublicOrigin,
 } from "@/lib/request-public-origin";
 
-/**
- * Path relativo para `/login` (com `?next=` opcional).
- */
-export function loginRedirectPath(next?: string | null): string {
-  if (!next) return "/login";
-
-  const params = new URLSearchParams({
-    next: safeNextPath(next, "/dashboard"),
-  });
-  return `/login?${params.toString()}`;
-}
+export { loginRedirectPath } from "@/lib/safe-next-path";
 
 /**
  * URL absoluta ou relativa para redirect server-side.

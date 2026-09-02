@@ -162,4 +162,27 @@ describe("RegisterForm", () => {
     );
     expect(screen.getByText(/Convite para o projecto/)).toBeInTheDocument();
   });
+
+  it("depois do cadastro redirecciona para nextPath", async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response("{}", { status: 201 }))
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ user: { id: "1" } }), { status: 200 }),
+      );
+
+    renderWithProviders(
+      <RegisterForm nextPath="/invite/th_inv_abc" />,
+    );
+
+    await user.type(screen.getByLabelText("Nome"), "Ana");
+    await user.type(screen.getByLabelText("E-mail"), "a@b.com");
+    await user.type(screen.getByLabelText("Senha"), "SenhaForte1!");
+    await user.type(screen.getByLabelText("Confirmar senha"), "SenhaForte1!");
+    await user.click(screen.getByRole("button", { name: "Criar conta" }));
+
+    await waitFor(() => {
+      expect(push).toHaveBeenCalledWith("/invite/th_inv_abc");
+    });
+  });
 });

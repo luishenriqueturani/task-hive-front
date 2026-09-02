@@ -360,6 +360,41 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { ok: true });
     }
 
+    const acceptInviteMatch = /^\/invites\/([^/]+)\/accept$/.exec(path);
+    if (req.method === "POST" && acceptInviteMatch) {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      const token = decodeURIComponent(acceptInviteMatch[1]);
+      const invite = [...invites.values()].find((i) => i.token === token);
+      if (
+        !invite ||
+        invite.status !== "PENDING" ||
+        Date.parse(invite.expiresAt) <= Date.now()
+      ) {
+        return send(res, 404, { message: "Convite inválido ou expirado." });
+      }
+      if (String(user.email || "").toLowerCase() !== invite.email) {
+        return send(res, 403, {
+          message: "Este convite é para outro e-mail.",
+        });
+      }
+      const project = projects.get(invite.projectId);
+      if (!project || project.deletedAt) {
+        return send(res, 404, { message: "Projeto não encontrado" });
+      }
+      if (
+        project.userOwner.id !== user.id &&
+        !project.participants.some((p) => p.id === user.id)
+      ) {
+        project.participants.push(publicUser(user));
+      }
+      invite.status = "ACCEPTED";
+      return send(res, 200, {
+        projectId: project.id,
+        projectName: project.name,
+      });
+    }
+
     const inviteMatch = /^\/invites\/([^/]+)$/.exec(path);
     if (req.method === "GET" && inviteMatch) {
       const token = decodeURIComponent(inviteMatch[1]);

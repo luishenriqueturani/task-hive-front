@@ -228,8 +228,8 @@ O layout completo do dashboard (duas listas de projectos) depende de **8.2**. A 
 - [x] **Duas secções em `/projects`:** “Meus projectos” (botão criar só aqui) e “Projectos em que fui convidado” (badge “Convidado”, sem criar).
 - [x] **Convite por e-mail:** em `ProjectParticipants`, campo e-mail + copiar link `/invite/:token`; lista de convites pending + revogar; indicador `used / limit` (`guestUsage`).
 - [x] **Manter** o atalho actual de adicionar participante por `userId` (user já registado); os dois caminhos respeitam o tecto de convidados.
-- [ ] **Página pública `/invite/[token]`:** nome do projecto; sem sessão → login/cadastro com `next=`; com sessão → Aceitar.
-- [ ] **Allowlist:** prefixo `invites`; matcher `/invite` no `proxy.ts` (página pública — não exigir cookie).
+- [x] **Página pública `/invite/[token]`:** nome do projecto; sem sessão → login/cadastro com `next=`; com sessão → Aceitar.
+- [x] **Allowlist:** prefixo `invites`; matcher `/invite` no `proxy.ts` (página pública — não exigir cookie).
 - [ ] **Testes:** unit/RTL das duas secções e do fluxo de convite; E2E smoke convite + accept.
 
 ### 8.3 Dashboard reorganizado e landing v1 (Onda 3)

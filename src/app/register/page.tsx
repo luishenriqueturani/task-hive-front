@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 export default async function RegisterPage({
   searchParams,
 }: {
-  searchParams: Promise<{ invite?: string }>;
+  searchParams: Promise<{ invite?: string; next?: string }>;
 }) {
-  const { invite } = await searchParams;
+  const { invite, next } = await searchParams;
 
   return (
     <AuthShell
@@ -20,7 +20,7 @@ export default async function RegisterPage({
       subtitle="Comece a organizar seus projetos em minutos."
       wide
     >
-      <RegisterForm inviteQuery={invite} />
+      <RegisterForm inviteQuery={invite} nextPath={next} />
     </AuthShell>
   );
 }

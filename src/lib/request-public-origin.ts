@@ -1,5 +1,4 @@
 import type { NextRequest } from "next/server";
-import { headers } from "next/headers";
 
 const BAD_HOSTNAMES = new Set(["0.0.0.0", "::", "[::]"]);
 
@@ -35,6 +34,7 @@ export function publicOriginFromRequest(request: NextRequest): string | null {
 }
 
 export async function publicOriginFromServer(): Promise<string | null> {
+  const { headers } = await import("next/headers");
   const h = await headers();
   return readPublicOriginFromHeaders((name) => h.get(name));
 }

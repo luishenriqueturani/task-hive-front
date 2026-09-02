@@ -5,6 +5,7 @@ describe("BFF allowlist (onda 1)", () => {
   it("permite prefixos desta onda e o to-do de contas PF", () => {
     expect(isBffPathAllowed("invites")).toBe(true);
     expect(isBffPathAllowed("invites/token-abc")).toBe(true);
+    expect(isBffPathAllowed("invites/token-abc/accept")).toBe(true);
     expect(isBffPathAllowed("to-do")).toBe(true);
     expect(isBffPathAllowed("users")).toBe(true);
   });

@@ -24,6 +24,7 @@ import { ACCOUNT_KIND } from "@/lib/account-kind";
 import { inviteQueryLooksLikeEmail } from "@/lib/br-documents";
 import { readApiErrorMessage } from "@/lib/api-error";
 import { fetchInvitePreview } from "@/lib/invites-api";
+import { loginRedirectPath, safeNextPath } from "@/lib/safe-next-path";
 
 async function registerRequest(data: RegisterRequestBody) {
   const res = await fetch("/api/bff/users", {
@@ -51,7 +52,13 @@ async function registerRequest(data: RegisterRequestBody) {
  * Formulário de cadastro PF ou CNPJ. Cria o usuário e inicia a sessão.
  * `inviteQuery` vem de `?invite=` (e-mail ou token de convite).
  */
-export function RegisterForm({ inviteQuery }: { inviteQuery?: string }) {
+export function RegisterForm({
+  inviteQuery,
+  nextPath,
+}: {
+  inviteQuery?: string;
+  nextPath?: string;
+}) {
   const router = useRouter();
   const [state, dispatch] = useReducer(
     registerFormReducer,
@@ -82,7 +89,9 @@ export function RegisterForm({ inviteQuery }: { inviteQuery?: string }) {
     mutationFn: registerRequest,
     onSuccess: ({ autoLogin }) => {
       dispatch({ type: "setFormError", formError: null });
-      router.push(autoLogin ? "/dashboard" : "/login");
+      router.push(
+        autoLogin ? safeNextPath(nextPath) : loginRedirectPath(nextPath),
+      );
       router.refresh();
     },
     onError: (err: unknown) => {
@@ -280,7 +289,7 @@ export function RegisterForm({ inviteQuery }: { inviteQuery?: string }) {
       <p className="text-center text-sm text-app-muted">
         Já tem uma conta?{" "}
         <Link
-          href="/login"
+          href={loginRedirectPath(nextPath)}
           className="font-medium text-app-accent hover:underline"
         >
           Entrar

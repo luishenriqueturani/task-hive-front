@@ -13,6 +13,7 @@ import { decodeSessionUser, SESSION_COOKIE } from "@/lib/session";
 /**
  * Guard de rotas (convenção `proxy` do Next.js 16, ex-middleware):
  * - sem sessão (cookie) em rota privada → redireciona a /login com `next=`.
+ * - `/invite` está no matcher mas é público (não entra em PROTECTED_PREFIXES).
  *
  * Não redireciona /login → /dashboard só pelo cookie: cookies inválidos
  * (JWT expirado, sessão revogada) causavam loop com `(app)/layout.tsx`.
@@ -80,6 +81,8 @@ export const config = {
     "/login",
     "/register",
     "/forgot-password",
+    "/invite",
+    "/invite/:path*",
     "/projects/:path*",
     "/to-do",
     "/to-do/:path*",

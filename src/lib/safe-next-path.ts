@@ -5,6 +5,7 @@ const ALLOWED_NEXT_PREFIXES = [
   "/to-do",
   "/companies",
   "/settings",
+  "/invite",
 ] as const;
 
 /**
@@ -36,4 +37,14 @@ export function safeNextPath(
   } catch {
     return fallback;
   }
+}
+
+/** Path relativo para `/login` (com `?next=` opcional). Seguro no cliente. */
+export function loginRedirectPath(next?: string | null): string {
+  if (!next) return "/login";
+
+  const params = new URLSearchParams({
+    next: safeNextPath(next, "/dashboard"),
+  });
+  return `/login?${params.toString()}`;
 }

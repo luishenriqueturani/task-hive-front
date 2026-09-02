@@ -82,4 +82,10 @@ describe("proxy (guard de rotas)", () => {
     const res = proxy(makeRequest("/login"));
     expect(res.headers.get("location")).toBeNull();
   });
+
+  it("permite /invite/:token sem sessão", () => {
+    const res = proxy(makeRequest("/invite/th_inv_abc"));
+    expect(res.headers.get("location")).toBeNull();
+    expect(res.status).toBe(200);
+  });
 });

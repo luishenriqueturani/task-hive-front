@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { readApiErrorMessage } from "@/lib/api-error";
+import { registerHrefFromNext } from "@/lib/invites-api";
 import { safeNextPath } from "@/lib/safe-next-path";
 import {
   AUTH_FORM_ERROR_ID,
@@ -129,7 +130,9 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
         <p className="text-center text-sm text-app-muted">
           Não tem uma conta?{" "}
           <Link
-            href="/register"
+            href={registerHrefFromNext(
+              nextPath ? safeNextPath(nextPath) : undefined,
+            )}
             className="font-medium text-app-accent hover:underline"
           >
             Cadastre-se
