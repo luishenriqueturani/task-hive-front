@@ -19,6 +19,12 @@ export function AdminHeader({ user }: { user: SessionUser }) {
               Planos
             </Link>
             <Link
+              href="/admin/coupons"
+              className="rounded-lg px-3 py-2 text-sm font-medium text-app-text transition hover:bg-app-surface-elevated/90"
+            >
+              Cupons
+            </Link>
+            <Link
               href="/dashboard"
               className="rounded-lg px-3 py-2 text-sm font-medium text-app-muted transition hover:bg-app-surface-elevated/90 hover:text-app-text"
             >
