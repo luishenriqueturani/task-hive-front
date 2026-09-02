@@ -3,6 +3,8 @@ import type { ProjectSummary } from "@/lib/api-types";
 import {
   canManageProject,
   fetchProjects,
+  inviteShareUrl,
+  isGuestLimitReached,
   projectsQueryKey,
 } from "@/lib/projects-api";
 
@@ -47,6 +49,20 @@ describe("canManageProject", () => {
 
   it("nega sem sessão", () => {
     expect(canManageProject(project, undefined)).toBe(false);
+  });
+});
+
+describe("invite helpers", () => {
+  it("monta URL pública do convite e avalia o tecto", () => {
+    expect(inviteShareUrl("th_inv_abc", "https://app.example")).toBe(
+      "https://app.example/invite/th_inv_abc",
+    );
+    expect(isGuestLimitReached({ used: 2, limit: 2, pendingInvites: 0 })).toBe(
+      true,
+    );
+    expect(isGuestLimitReached({ used: 1, limit: -1, pendingInvites: 0 })).toBe(
+      false,
+    );
   });
 });
 

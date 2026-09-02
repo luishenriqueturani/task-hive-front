@@ -1,5 +1,8 @@
 import { readApiErrorMessage } from "@/lib/api-error";
 import type {
+  GuestUsage,
+  ProjectInvite,
+  ProjectInvitesResponse,
   ProjectParticipant,
   ProjectSummary,
   UserPublic,
@@ -18,6 +21,19 @@ export function projectsQueryKey(scope: ProjectListScope = "all") {
 
 export function participantsQueryKey(projectId: string) {
   return ["/projects", projectId, "participants"] as const;
+}
+
+export function projectInvitesQueryKey(projectId: string) {
+  return ["/projects", projectId, "invites"] as const;
+}
+
+export function inviteShareUrl(token: string, origin: string) {
+  return `${origin.replace(/\/$/, "")}/invite/${encodeURIComponent(token)}`;
+}
+
+export function isGuestLimitReached(usage: GuestUsage | undefined): boolean {
+  if (!usage) return false;
+  return usage.limit >= 0 && usage.used >= usage.limit;
 }
 
 export interface ProjectInput {
@@ -127,6 +143,39 @@ export async function searchUsers(query: string): Promise<UserPublic[]> {
     credentials: "include",
   });
   return parseOrThrow(res, "Não foi possível carregar os utilizadores.");
+}
+
+export async function fetchProjectInvites(
+  projectId: string,
+): Promise<ProjectInvitesResponse> {
+  const res = await fetch(`/api/bff/projects/${projectId}/invites`, {
+    credentials: "include",
+  });
+  return parseOrThrow(res, "Não foi possível carregar os convites.");
+}
+
+export async function createProjectInvite(
+  projectId: string,
+  email: string,
+): Promise<ProjectInvite> {
+  const res = await fetch(`/api/bff/projects/${projectId}/invites`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ email }),
+  });
+  return parseOrThrow(res, "Não foi possível enviar o convite.");
+}
+
+export async function revokeProjectInvite(
+  projectId: string,
+  inviteId: string,
+): Promise<ProjectInvitesResponse> {
+  const res = await fetch(
+    `/api/bff/projects/${projectId}/invites/${inviteId}`,
+    { method: "DELETE", credentials: "include" },
+  );
+  return parseOrThrow(res, "Não foi possível revogar o convite.");
 }
 
 /** Dono ou admin podem gerir o projeto (alinhado ao canManageProject do backend). */

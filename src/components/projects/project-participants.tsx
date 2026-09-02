@@ -9,11 +9,15 @@ import type { ProjectParticipant, ProjectSummary, UserRef } from "@/lib/api-type
 import {
   addParticipant,
   fetchParticipants,
+  fetchProjectInvites,
+  isGuestLimitReached,
   searchUsers,
   participantsQueryKey,
+  projectInvitesQueryKey,
   PROJECTS_QUERY_KEY,
   removeParticipant,
 } from "@/lib/projects-api";
+import { InviteByEmailForm, ProjectInvitesPanel } from "./project-invites-panel";
 
 function MemberChip({
   member,
@@ -74,6 +78,15 @@ export function ProjectParticipants({
     queryFn: () => fetchParticipants(project.id),
   });
 
+  const invites = useQuery({
+    queryKey: projectInvitesQueryKey(project.id),
+    queryFn: () => fetchProjectInvites(project.id),
+    enabled: canManage,
+  });
+
+  const guestUsage = invites.data?.guestUsage;
+  const atLimit = isGuestLimitReached(guestUsage);
+
   const users = useQuery({
     queryKey: ["/users/search", search],
     queryFn: () => searchUsers(search),
@@ -84,6 +97,9 @@ export function ProjectParticipants({
     await Promise.all([
       queryClient.invalidateQueries({
         queryKey: participantsQueryKey(project.id),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: projectInvitesQueryKey(project.id),
       }),
       queryClient.invalidateQueries({ queryKey: PROJECTS_QUERY_KEY }),
     ]);
@@ -132,6 +148,13 @@ export function ProjectParticipants({
       <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-app-muted">
         <FaUserGroup className="h-3.5 w-3.5 text-app-accent" aria-hidden />
         Participantes
+        {canManage && guestUsage ? (
+          <span className="normal-case tracking-normal text-app-muted">
+            {guestUsage.limit < 0
+              ? `${guestUsage.used} convidados`
+              : `${guestUsage.used} / ${guestUsage.limit} convidados`}
+          </span>
+        ) : null}
       </div>
 
       {participants.isPending ? (
@@ -166,7 +189,9 @@ export function ProjectParticipants({
                   setSearch("");
                   setAdding(true);
                 }}
-                className="flex cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-app-border/80 bg-app-surface/50 px-2.5 py-1 text-xs font-medium text-app-muted transition hover:border-app-accent/50 hover:text-app-text"
+                disabled={atLimit}
+                title={atLimit ? "Limite do plano" : undefined}
+                className="flex cursor-pointer items-center gap-1.5 rounded-full border border-dashed border-app-border/80 bg-app-surface/50 px-2.5 py-1 text-xs font-medium text-app-muted transition hover:border-app-accent/50 hover:text-app-text disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <FaPlus className="h-3 w-3" aria-hidden />
                 Adicionar
@@ -175,6 +200,17 @@ export function ProjectParticipants({
           ) : null}
         </ul>
       )}
+
+      {canManage && atLimit ? (
+        <p className="text-xs text-app-muted">Limite do plano atingido.</p>
+      ) : null}
+
+      {canManage ? (
+        <ProjectInvitesPanel
+          projectId={project.id}
+          invites={invites.data?.invites ?? []}
+        />
+      ) : null}
 
       {adding ? (
         <Modal
@@ -238,6 +274,14 @@ export function ProjectParticipants({
               </ul>
             )}
           </div>
+          <InviteByEmailForm
+            projectId={project.id}
+            disabled={atLimit || add.isPending}
+            onCreated={async () => {
+              setAdding(false);
+              await invalidate();
+            }}
+          />
           {add.isPending ? (
             <p className="mt-3 text-sm text-app-muted" role="status">
               A adicionar…

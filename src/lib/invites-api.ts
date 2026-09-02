@@ -5,8 +5,6 @@ export interface InvitePreview {
 
 /**
  * Metadados públicos de um convite (e-mail a pré-preencher no cadastro).
- * Enquanto a Onda 2 não existir no backend, falha com 404 — o formulário
- * continua utilizável.
  */
 export async function fetchInvitePreview(
   token: string,

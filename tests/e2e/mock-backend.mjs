@@ -3,7 +3,7 @@
  * Backend mock em memória para smoke E2E do frontend.
  * Port padrão: 4099 (override com MOCK_BACKEND_PORT).
  *
- * Cobre: login, logout, users, projects (CRUD + participantes) e
+ * Cobre: login, logout, users, projects (CRUD + participantes + convites) e
  * check-token/reset-password. Emite JWT fake compatível com decodeSessionUser.
  */
 import http from "node:http";
@@ -29,6 +29,8 @@ const timetracks = new Map();
 const taskCompletions = new Map();
 /** @type {Map<string, object>} */
 const todos = new Map();
+/** @type {Map<string, { id: string, projectId: string, email: string, token: string, status: string, expiresAt: string, createdAt: string }>} */
+const invites = new Map();
 let projectSeq = 1n;
 let stageSeq = 1n;
 let taskSeq = 1n;
@@ -207,6 +209,49 @@ function canManage(project, user) {
   );
 }
 
+const TRIAL_MAX_PROJECT_GUESTS = 2;
+
+function pendingInvitesFor(projectId) {
+  return [...invites.values()].filter(
+    (inv) => inv.projectId === projectId && inv.status === "PENDING",
+  );
+}
+
+function guestUsageFor(project) {
+  const pending = pendingInvitesFor(project.id).length;
+  return {
+    used: project.participants.length + pending,
+    limit: TRIAL_MAX_PROJECT_GUESTS,
+    pendingInvites: pending,
+  };
+}
+
+function guestLimitReached(project) {
+  const usage = guestUsageFor(project);
+  return usage.limit >= 0 && usage.used >= usage.limit;
+}
+
+function inviteView(inv) {
+  return {
+    id: inv.id,
+    email: inv.email,
+    token: inv.token,
+    status: inv.status,
+    expiresAt: inv.expiresAt,
+    createdAt: inv.createdAt,
+  };
+}
+
+function sendPlanLimitGuests(res, project) {
+  const usage = guestUsageFor(project);
+  return send(res, 402, {
+    code: "PLAN_LIMIT_GUESTS",
+    message: "Limite de convidados do plano atingido.",
+    limit: usage.limit,
+    used: usage.used,
+  });
+}
+
 function b64url(obj) {
   return Buffer.from(JSON.stringify(obj)).toString("base64url");
 }
@@ -322,6 +367,18 @@ const server = http.createServer(async (req, res) => {
         return send(res, 200, {
           email: "convidado@taskhive.test",
           projectName: "Projeto Convite",
+        });
+      }
+      const invite = [...invites.values()].find((i) => i.token === token);
+      if (
+        invite &&
+        invite.status === "PENDING" &&
+        Date.parse(invite.expiresAt) > Date.now()
+      ) {
+        const project = projects.get(invite.projectId);
+        return send(res, 200, {
+          email: invite.email,
+          projectName: project?.name,
         });
       }
       return send(res, 404, { message: "Convite inválido ou expirado." });
@@ -669,7 +726,15 @@ const server = http.createServer(async (req, res) => {
             message: "Usuário já é participante do projeto",
           });
         }
+        const email = String(toAdd.email || "").toLowerCase();
+        const pending = pendingInvitesFor(project.id).find(
+          (i) => i.email === email,
+        );
+        if (!pending && guestLimitReached(project)) {
+          return sendPlanLimitGuests(res, project);
+        }
         project.participants.push(publicUser(toAdd));
+        if (pending) pending.status = "ACCEPTED";
         return send(
           res,
           200,
@@ -689,6 +754,89 @@ const server = http.createServer(async (req, res) => {
           200,
           project.participants.map((p) => participantView(p)),
         );
+      }
+    }
+
+    const projectInvitesMatch =
+      /^\/projects\/([^/]+)\/invites(?:\/([^/]+))?$/.exec(path);
+    if (projectInvitesMatch) {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      const project = projects.get(projectInvitesMatch[1]);
+      if (!project || project.deletedAt) {
+        return send(res, 404, { message: "Projeto não encontrado" });
+      }
+      if (!canManage(project, user)) {
+        return send(res, 403, { message: "Forbidden resource" });
+      }
+      const inviteId = projectInvitesMatch[2];
+
+      if (req.method === "GET" && !inviteId) {
+        const pending = pendingInvitesFor(project.id);
+        return send(res, 200, {
+          invites: pending.map(inviteView),
+          guestUsage: guestUsageFor(project),
+        });
+      }
+
+      if (req.method === "POST" && !inviteId) {
+        const body = await readBody(req);
+        const email = String(body?.email || "").trim().toLowerCase();
+        if (!email.includes("@")) {
+          return send(res, 422, { message: "e-mail inválido" });
+        }
+        if (String(project.userOwner.email || "").toLowerCase() === email) {
+          return send(res, 400, {
+            message: "O dono do projeto já tem acesso total",
+          });
+        }
+        if (
+          project.participants.some(
+            (p) => String(p.email || "").toLowerCase() === email,
+          )
+        ) {
+          return send(res, 400, {
+            message: "Usuário já é participante do projeto",
+          });
+        }
+        if (pendingInvitesFor(project.id).some((i) => i.email === email)) {
+          return send(res, 400, {
+            message: "Já existe um convite pendente para este e-mail",
+          });
+        }
+        if (guestLimitReached(project)) {
+          return sendPlanLimitGuests(res, project);
+        }
+        const id = randomUUID();
+        const now = new Date();
+        const invite = {
+          id,
+          projectId: project.id,
+          email,
+          token: `th_inv_${id.replace(/-/g, "").slice(0, 24)}`,
+          status: "PENDING",
+          expiresAt: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          createdAt: now.toISOString(),
+        };
+        invites.set(id, invite);
+        return send(res, 201, inviteView(invite));
+      }
+
+      if (req.method === "DELETE" && inviteId) {
+        const invite = invites.get(inviteId);
+        if (
+          !invite ||
+          invite.projectId !== project.id ||
+          invite.status !== "PENDING"
+        ) {
+          return send(res, 404, { message: "Convite não encontrado" });
+        }
+        invite.status = "REVOKED";
+        const pending = pendingInvitesFor(project.id);
+        return send(res, 200, {
+          invites: pending.map(inviteView),
+          guestUsage: guestUsageFor(project),
+        });
       }
     }
 

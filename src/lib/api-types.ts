@@ -41,6 +41,26 @@ export interface ProjectSummary {
   updatedAt: string | null;
 }
 
+export interface GuestUsage {
+  used: number;
+  limit: number;
+  pendingInvites: number;
+}
+
+export interface ProjectInvite {
+  id: string;
+  email: string;
+  token: string;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface ProjectInvitesResponse {
+  invites: ProjectInvite[];
+  guestUsage: GuestUsage;
+}
+
 /** Coluna (stage) do quadro — listagem por projeto ordenada por `order`. */
 export interface ProjectStage {
   id: string;
