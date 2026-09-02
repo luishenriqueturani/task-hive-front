@@ -49,7 +49,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
 
   const projects = useQuery({
     queryKey: PROJECTS_QUERY_KEY,
-    queryFn: fetchProjects,
+    queryFn: () => fetchProjects(),
   });
 
   const remove = useMutation({

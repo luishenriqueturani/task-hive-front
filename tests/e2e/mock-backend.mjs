@@ -593,13 +593,16 @@ const server = http.createServer(async (req, res) => {
     if (path === "/projects" && req.method === "GET") {
       const user = bearerUser(req);
       if (!user) return send(res, 401, { message: "Unauthorized" });
+      const scope = url.searchParams.get("scope") || "all";
       const list = [...projects.values()]
         .filter((p) => !p.deletedAt)
-        .filter(
-          (p) =>
-            p.userOwner.id === user.id ||
-            p.participants.some((part) => part.id === user.id),
-        )
+        .filter((p) => {
+          const owned = p.userOwner.id === user.id;
+          const invited = p.participants.some((part) => part.id === user.id);
+          if (scope === "owned") return owned;
+          if (scope === "invited") return invited && !owned;
+          return owned || invited;
+        })
         .map(projectForClient);
       return send(res, 200, list);
     }

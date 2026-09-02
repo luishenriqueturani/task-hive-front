@@ -8,6 +8,14 @@ import type {
 /** Chave de cache da listagem de projetos (compartilhada com o dashboard). */
 export const PROJECTS_QUERY_KEY = ["/projects"] as const;
 
+export const PROJECT_LIST_SCOPES = ["all", "owned", "invited"] as const;
+
+export type ProjectListScope = (typeof PROJECT_LIST_SCOPES)[number];
+
+export function projectsQueryKey(scope: ProjectListScope = "all") {
+  return [...PROJECTS_QUERY_KEY, scope] as const;
+}
+
 export function participantsQueryKey(projectId: string) {
   return ["/projects", projectId, "participants"] as const;
 }
@@ -24,8 +32,18 @@ async function parseOrThrow<T>(res: Response, fallback: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function fetchProjects(): Promise<ProjectSummary[]> {
-  const res = await fetch("/api/bff/projects", { credentials: "include" });
+export async function fetchProjects(
+  scope: ProjectListScope = "all",
+): Promise<ProjectSummary[]> {
+  const resolved =
+    scope === "owned" || scope === "invited" || scope === "all"
+      ? scope
+      : "all";
+  const path =
+    resolved === "all"
+      ? "/api/bff/projects"
+      : `/api/bff/projects?scope=${resolved}`;
+  const res = await fetch(path, { credentials: "include" });
   return parseOrThrow(res, "Não foi possível carregar os projetos.");
 }
 

@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ProjectSummary } from "@/lib/api-types";
-import { canManageProject } from "@/lib/projects-api";
+import {
+  canManageProject,
+  fetchProjects,
+  projectsQueryKey,
+} from "@/lib/projects-api";
 
 const project: ProjectSummary = {
   id: "1",
@@ -43,5 +47,46 @@ describe("canManageProject", () => {
 
   it("nega sem sessão", () => {
     expect(canManageProject(project, undefined)).toBe(false);
+  });
+});
+
+describe("fetchProjects", () => {
+  it("chave de cache inclui o scope", () => {
+    expect(projectsQueryKey("owned")).toEqual(["/projects", "owned"]);
+    expect(projectsQueryKey()).toEqual(["/projects", "all"]);
+  });
+
+  it("omite query quando scope é all", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() =>
+        Promise.resolve(new Response("[]", { status: 200 })),
+      ),
+    );
+    await fetchProjects();
+    expect(fetch).toHaveBeenCalledWith("/api/bff/projects", {
+      credentials: "include",
+    });
+  });
+
+  it("pede scope=owned e scope=invited", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() =>
+        Promise.resolve(new Response("[]", { status: 200 })),
+      ),
+    );
+    await fetchProjects("owned");
+    await fetchProjects("invited");
+    expect(fetch).toHaveBeenNthCalledWith(
+      1,
+      "/api/bff/projects?scope=owned",
+      { credentials: "include" },
+    );
+    expect(fetch).toHaveBeenNthCalledWith(
+      2,
+      "/api/bff/projects?scope=invited",
+      { credentials: "include" },
+    );
   });
 });

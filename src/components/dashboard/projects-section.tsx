@@ -16,7 +16,7 @@ import {
 export function ProjectsSection() {
   const projects = useQuery({
     queryKey: PROJECTS_QUERY_KEY,
-    queryFn: fetchProjects,
+    queryFn: () => fetchProjects(),
   });
 
   return (

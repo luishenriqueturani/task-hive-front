@@ -224,8 +224,8 @@ O layout completo do dashboard (duas listas de projectos) depende de **8.2**. A 
 
 ### 8.2 Convites e projectos próprios vs convidados (Onda 2)
 
-- [ ] **API de listagem:** `GET /projects?scope=owned` e `scope=invited` em paralelo (`projects-api.ts` + TanStack Query).
-- [ ] **Duas secções em `/projects`:** “Meus projectos” (botão criar só aqui) e “Projectos em que fui convidado” (badge “Convidado”, sem criar).
+- [x] **API de listagem:** `GET /projects?scope=owned` e `scope=invited` em paralelo (`projects-api.ts` + TanStack Query).
+- [x] **Duas secções em `/projects`:** “Meus projectos” (botão criar só aqui) e “Projectos em que fui convidado” (badge “Convidado”, sem criar).
 - [ ] **Convite por e-mail:** em `ProjectParticipants`, campo e-mail + copiar link `/invite/:token`; lista de convites pending + revogar; indicador `used / limit` (`guestUsage`).
 - [ ] **Manter** o atalho actual de adicionar participante por `userId` (user já registado); os dois caminhos respeitam o tecto de convidados.
 - [ ] **Página pública `/invite/[token]`:** nome do projecto; sem sessão → login/cadastro com `next=`; com sessão → Aceitar.

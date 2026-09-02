@@ -4,27 +4,83 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders } from "@tests/helpers/render";
 import { ProjectsView } from "@/components/projects/projects-view";
 
+const ownedProject = {
+  id: "1",
+  name: "Backlog",
+  description: "Principal",
+  createdAt: "2026-01-15T00:00:00.000Z",
+  updatedAt: null,
+  userOwner: { id: "u1", name: "Ana", email: "a@b.com" },
+  participants: [],
+};
+
+const invitedProject = {
+  id: "2",
+  name: "Kanban do time",
+  description: "Convite",
+  createdAt: "2026-02-01T00:00:00.000Z",
+  updatedAt: null,
+  userOwner: { id: "u2", name: "Bia", email: "b@b.com" },
+  participants: [{ id: "u1", name: "Ana", email: "a@b.com" }],
+};
+
+function mockProjectsApi(opts?: {
+  owned?: unknown[];
+  invited?: unknown[];
+  ownedStatus?: number;
+  invitedStatus?: number;
+}) {
+  const owned = opts?.owned ?? [];
+  const invited = opts?.invited ?? [];
+  vi.mocked(fetch).mockImplementation(async (input) => {
+    const url = String(input);
+    if (url.includes("scope=invited")) {
+      const status = opts?.invitedStatus ?? 200;
+      return new Response(
+        status === 200 ? JSON.stringify(invited) : "fail",
+        { status },
+      );
+    }
+    if (url.includes("scope=owned")) {
+      const status = opts?.ownedStatus ?? 200;
+      return new Response(
+        status === 200 ? JSON.stringify(owned) : "fail",
+        { status },
+      );
+    }
+    return new Response(JSON.stringify([]), { status: 200 });
+  });
+}
+
 describe("ProjectsView", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
   });
 
-  it("mostra estado vazio", async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      new Response(JSON.stringify([]), { status: 200 }),
-    );
+  it("mostra as duas secções vazias", async () => {
+    mockProjectsApi();
 
     renderWithProviders(<ProjectsView />);
 
     expect(
       await screen.findByText(/ainda não tem projetos/i),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Meus projetos" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Projetos em que fui convidado" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Ainda não foi convidado para nenhum projeto/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Novo projeto/i }),
+    ).toBeInTheDocument();
   });
 
-  it("mostra erro de carregamento", async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      new Response("fail", { status: 500 }),
-    );
+  it("mostra erro de carregamento na secção afectada", async () => {
+    mockProjectsApi({ ownedStatus: 500 });
 
     renderWithProviders(<ProjectsView />);
 
@@ -33,36 +89,44 @@ describe("ProjectsView", () => {
     ).toBeInTheDocument();
   });
 
-  it("lista projetos com link para o detalhe", async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      new Response(
-        JSON.stringify([
-          {
-            id: "1",
-            name: "Backlog",
-            description: "Principal",
-            createdAt: "2026-01-15T00:00:00.000Z",
-            updatedAt: null,
-            userOwner: { id: "u1", name: "Ana", email: "a@b.com" },
-            participants: [],
-          },
-        ]),
-        { status: 200 },
-      ),
-    );
+  it("lista projectos próprios com link para o detalhe", async () => {
+    mockProjectsApi({ owned: [ownedProject] });
 
     renderWithProviders(<ProjectsView />);
 
     const link = await screen.findByRole("link", { name: /Backlog/i });
     expect(link).toHaveAttribute("href", "/projects/1");
     expect(screen.getByText("Principal")).toBeInTheDocument();
+    expect(screen.queryByText("Convidado")).not.toBeInTheDocument();
   });
 
-  it("abre modal Novo projeto", async () => {
-    const user = userEvent.setup();
-    vi.mocked(fetch).mockResolvedValue(
-      new Response(JSON.stringify([]), { status: 200 }),
+  it("lista projectos convidados com badge e sem segundo botão criar", async () => {
+    mockProjectsApi({ invited: [invitedProject] });
+
+    renderWithProviders(<ProjectsView />);
+
+    const link = await screen.findByRole("link", { name: /Kanban do time/i });
+    expect(link).toHaveAttribute("href", "/projects/2");
+    expect(screen.getByText("Convidado")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Novo projeto/i })).toHaveLength(
+      1,
     );
+  });
+
+  it("pede owned e invited em paralelo", async () => {
+    mockProjectsApi();
+
+    renderWithProviders(<ProjectsView />);
+    await screen.findByText(/ainda não tem projetos/i);
+
+    const urls = vi.mocked(fetch).mock.calls.map(([input]) => String(input));
+    expect(urls).toContain("/api/bff/projects?scope=owned");
+    expect(urls).toContain("/api/bff/projects?scope=invited");
+  });
+
+  it("abre modal Novo projeto só a partir dos próprios", async () => {
+    const user = userEvent.setup();
+    mockProjectsApi();
 
     renderWithProviders(<ProjectsView />);
     await waitFor(() =>
