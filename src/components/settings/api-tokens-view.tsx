@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { FaPlus, FaTrashCan } from "react-icons/fa6";
 import { PlanLimitHint } from "@/components/plan/plan-limit-hint";
+import { SettingsShell } from "@/components/settings/settings-shell";
 import {
   createPersonalAccessToken,
   fetchPersonalAccessTokens,
@@ -11,6 +12,7 @@ import {
   revokePersonalAccessToken,
 } from "@/lib/personal-access-tokens-api";
 import {
+  formatQuotaUsage,
   isApiKeysLimitReached,
   PLAN_LIMIT_TOOLTIP,
 } from "@/lib/plan-quota";
@@ -60,19 +62,25 @@ export function ApiTokensView() {
     mutationFn: revokePersonalAccessToken,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: PAT_QUERY_KEY });
+      void queryClient.invalidateQueries({ queryKey: SESSION_USER_QUERY_KEY });
     },
     onError: () => setError("Não foi possível revogar o token."),
   });
 
+  const plan = session.data?.plan;
+  const used = Math.max(tokens.data?.length ?? 0, plan?.usage.apiKeys ?? 0);
+  const limit = plan?.limits.maxApiKeys;
+  const quotaLabel =
+    typeof limit === "number" ? formatQuotaUsage(used, limit) : String(used);
+
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-      <h1 className="text-xl font-semibold text-app-text">Tokens de API</h1>
-      <p className="mt-2 text-sm text-app-muted">
-        Crie tokens para agentes de IA ou scripts. Use{" "}
-        <code className="rounded bg-app-surface-elevated px-1">
-          Authorization: Bearer th_pat_…
-        </code>{" "}
-        nas chamadas directas à API.
+    <SettingsShell
+      current="tokens"
+      title="Tokens de API"
+      description="Crie tokens para agentes de IA ou scripts. Use Authorization: Bearer th_pat_… nas chamadas directas à API."
+    >
+      <p className="text-sm text-app-muted">
+        {quotaLabel} chaves
       </p>
 
       {error ? (
@@ -180,6 +188,6 @@ export function ApiTokensView() {
           <li className="text-sm text-app-muted">Nenhum token criado.</li>
         ) : null}
       </ul>
-    </div>
+    </SettingsShell>
   );
 }

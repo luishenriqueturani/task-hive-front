@@ -56,3 +56,8 @@ export function isStandaloneTasksLimitReached(
     plan.limits.maxStandaloneTasks,
   );
 }
+
+/** Ex.: `2 / 5` ou `2 / Ilimitado`. */
+export function formatQuotaUsage(used: number, limit: number): string {
+  return limit < 0 ? `${used} / Ilimitado` : `${used} / ${limit}`;
+}

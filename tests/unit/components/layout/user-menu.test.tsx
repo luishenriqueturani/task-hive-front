@@ -26,6 +26,14 @@ describe("UserMenu", () => {
     // e-mail aparece no subtítulo do avatar e na linha "E-mail"
     expect(screen.getAllByText("luis@example.com").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Cliente")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Plano" })).toHaveAttribute(
+      "href",
+      "/settings/plan",
+    );
+    expect(screen.getByRole("link", { name: "Tokens de API" })).toHaveAttribute(
+      "href",
+      "/settings/api-tokens",
+    );
     expect(
       screen.getByRole("button", { name: "Sair da conta" }),
     ).toBeInTheDocument();

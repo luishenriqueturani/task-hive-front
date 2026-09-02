@@ -36,8 +36,9 @@ describe("ApiTokensView", () => {
     renderWithProviders(<ApiTokensView />);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Criar token/i })).toBeEnabled();
+      expect(screen.getByText("0 / 1 chaves")).toBeInTheDocument();
     });
+    expect(screen.getByRole("button", { name: /Criar token/i })).toBeEnabled();
     expect(screen.queryByRole("link", { name: "Ver planos" })).not.toBeInTheDocument();
   });
 
@@ -58,8 +59,9 @@ describe("ApiTokensView", () => {
     renderWithProviders(<ApiTokensView />);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Criar token/i })).toBeDisabled();
+      expect(screen.getByText("1 / 1 chaves")).toBeInTheDocument();
     });
+    expect(screen.getByRole("button", { name: /Criar token/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Criar token/i })).toHaveAttribute(
       "title",
       "Limite do plano",

@@ -244,8 +244,8 @@ Pode avançar em paralelo com 8.1 (landing estática e coluna de to-dos). As dua
 
 - [x] **Helpers de quota:** `src/lib/plan-quota.ts` + mensagens 402 (`PLAN_LIMIT_PROJECTS`, `PLAN_LIMIT_API_KEYS`, `PLAN_LIMIT_TODOS`, `PLAN_LIMIT_GUESTS`) em `api-error.ts`.
 - [x] **Limites na UI:** desactivar Criar projecto / Criar to-do / Gerar token / Convidar com tooltip “Limite do plano” e link para `/settings/plan`.
-- [ ] **`/settings/plan`:** plano actual, usage, tabela de upgrade **informativa** (sem checkout).
-- [ ] **PAT:** mostrar `x / max` chaves em `/settings/api-tokens`.
+- [x] **`/settings/plan`:** plano actual, usage, tabela de upgrade **informativa** (sem checkout).
+- [x] **PAT:** mostrar `x / max` chaves em `/settings/api-tokens`.
 - [ ] **Landing v2:** cards a partir de `GET /plans`; fallback para copy estática se a API falhar. Toggle PF / Empresa esconde a linha “tarefas avulsas”.
 - [ ] **Admin — planos:** `/admin/plans` — lista + editor de quotas (`maxProjects`, `maxApiKeys`, `maxStandaloneTasks`, `maxProjectGuests`) e CRUD da área de benefícios (`PlanBenefit`). Não apagar plano `isSystem` (`free-trial`).
 - [ ] **Admin — cupons:** `/admin/coupons` — CRUD (código, percent/fixo, datas, tecto de usos, planos aplicáveis) e redemptions.

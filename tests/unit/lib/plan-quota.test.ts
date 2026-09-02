@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatQuotaUsage,
   isApiKeysLimitReached,
   isPlanLimitCode,
   isProjectsLimitReached,
@@ -64,5 +65,12 @@ describe("limites do plano na sessão", () => {
   it("reconhece códigos 402", () => {
     expect(isPlanLimitCode(PLAN_LIMIT_CODE.PROJECTS)).toBe(true);
     expect(isPlanLimitCode("OTHER")).toBe(false);
+  });
+});
+
+describe("formatQuotaUsage", () => {
+  it("formata usado / tecto", () => {
+    expect(formatQuotaUsage(2, 5)).toBe("2 / 5");
+    expect(formatQuotaUsage(1, -1)).toBe("1 / Ilimitado");
   });
 });
