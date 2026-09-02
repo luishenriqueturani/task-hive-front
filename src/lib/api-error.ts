@@ -16,6 +16,9 @@ const TRANSLATIONS: Array<[RegExp, string]> = [
   [/should not be empty/i, "Preencha todos os campos obrigatórios."],
   [/Forbidden resource/i, "Você não tem permissão para esta ação."],
   [/Unauthorized/i, "Sessão expirada. Entre novamente."],
+  [/Email already exists/i, "Este e-mail já está cadastrado."],
+  [/CNPJ já cadastrado/i, "Este CNPJ já está cadastrado."],
+  [/property company should not exist/i, "Dados da empresa inválidos."],
 ];
 
 function translate(message: string): string {

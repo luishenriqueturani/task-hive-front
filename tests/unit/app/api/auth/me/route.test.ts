@@ -53,6 +53,9 @@ describe("GET /api/auth/me", () => {
         name: "Ana",
         email: "ana@example.com",
         role: "CLIENT",
+        accountKind: "INDIVIDUAL",
+        company: null,
+        plan: null,
       },
     });
     expect(fetchMock).toHaveBeenCalledWith(
@@ -63,6 +66,58 @@ describe("GET /api/auth/me", () => {
         }),
       }),
     );
+  });
+
+  it("admins no /me ficam com plan null", async () => {
+    vi.stubEnv("BACKEND_API_BASE_URL", "http://backend.test");
+    const token = makeFakeJwt({
+      id: "admin-1",
+      name: "Admin",
+      email: "admin@example.com",
+      role: "ADMIN_GOD",
+      exp: Math.floor(Date.now() / 1000) + 3600,
+    });
+    vi.doMock("next/headers", () => ({
+      cookies: async () => ({
+        get: (name: string) =>
+          name === SESSION_COOKIE ? { name, value: token } : undefined,
+      }),
+    }));
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: "admin-1",
+          name: "Admin",
+          email: "admin@example.com",
+          role: "ADMIN_GOD",
+          plan: {
+            slug: "pro",
+            name: "Pro",
+            status: "ACTIVE",
+            limits: {
+              maxProjects: 20,
+              maxApiKeys: 10,
+              maxStandaloneTasks: 200,
+              maxProjectGuests: 15,
+            },
+            usage: {
+              projects: 0,
+              apiKeys: 0,
+              standaloneTasks: 0,
+              projectGuests: null,
+            },
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    const { GET } = await import("@/app/api/auth/me/route");
+    const res = await GET();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.user.plan).toBeNull();
+    expect(body.user.accountKind).toBe("INDIVIDUAL");
   });
 
   it("retorna 401 sem cookie", async () => {

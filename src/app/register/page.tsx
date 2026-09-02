@@ -7,13 +7,20 @@ export const metadata: Metadata = {
   description: "Crie sua conta Task Hive para organizar projetos e tarefas.",
 };
 
-export default function RegisterPage() {
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ invite?: string }>;
+}) {
+  const { invite } = await searchParams;
+
   return (
     <AuthShell
       title="Criar conta"
       subtitle="Comece a organizar seus projetos em minutos."
+      wide
     >
-      <RegisterForm />
+      <RegisterForm inviteQuery={invite} />
     </AuthShell>
   );
 }

@@ -1,19 +1,15 @@
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { UserMenu } from "@/components/layout/user-menu";
+import { sessionUserFixture } from "@tests/helpers/session-user";
 import { renderWithProviders } from "@tests/helpers/render";
+import { UserMenu } from "@/components/layout/user-menu";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
-const user = {
-  id: "u1",
-  name: "Luis Silva",
-  email: "luis@example.com",
-  role: "CLIENT",
-};
+const user = sessionUserFixture();
 
 describe("UserMenu", () => {
   it("mostra iniciais e abre o drawer com dados do perfil", async () => {

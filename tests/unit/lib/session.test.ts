@@ -17,6 +17,9 @@ describe("decodeSessionUser", () => {
       name: "Ana",
       email: "ana@example.com",
       role: "CLIENT",
+      accountKind: "INDIVIDUAL",
+      company: null,
+      plan: null,
     });
   });
 
@@ -65,6 +68,9 @@ describe("decodeSessionUser", () => {
       name: null,
       email: "ana@example.com",
       role: null,
+      accountKind: "INDIVIDUAL",
+      company: null,
+      plan: null,
     });
   });
 });

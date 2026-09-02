@@ -2,7 +2,7 @@ import userEvent from "@testing-library/user-event";
 import { screen } from "@testing-library/react";
 import { describe, it, vi } from "vitest";
 import { AppHeader } from "@/components/layout/app-header";
-import type { SessionUser } from "@/lib/session";
+import { sessionUserFixture } from "@tests/helpers/session-user";
 import { expectNoA11yViolations } from "@tests/helpers/a11y";
 import { renderWithAppProviders } from "@tests/helpers/app-render";
 
@@ -10,12 +10,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
-const sessionUser: SessionUser = {
-  id: "u1",
-  name: "Luis Silva",
-  email: "luis@example.com",
-  role: "CLIENT",
-};
+const sessionUser = sessionUserFixture();
 
 describe("a11y — shell autenticado", () => {
   it("AppHeader com navegação principal não tem violações axe", async () => {

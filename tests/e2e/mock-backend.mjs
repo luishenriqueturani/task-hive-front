@@ -171,6 +171,9 @@ const seed = {
   email: "e2e@taskhive.test",
   password: "SenhaForte123!",
   role: "CLIENT",
+  accountKind: "INDIVIDUAL",
+  document: null,
+  company: null,
 };
 registerUser(seed);
 
@@ -180,6 +183,9 @@ const seedColleague = {
   email: "colega@taskhive.test",
   password: "SenhaForte123!",
   role: "CLIENT",
+  accountKind: "INDIVIDUAL",
+  document: null,
+  company: null,
 };
 registerUser(seedColleague);
 
@@ -224,6 +230,9 @@ function publicUser(user) {
     email: user.email,
     role: user.role,
     avatar: null,
+    accountKind: user.accountKind || "INDIVIDUAL",
+    document: user.document ?? null,
+    company: user.company ?? null,
   };
 }
 
@@ -297,6 +306,18 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { ok: true });
     }
 
+    const inviteMatch = /^\/invites\/([^/]+)$/.exec(path);
+    if (req.method === "GET" && inviteMatch) {
+      const token = decodeURIComponent(inviteMatch[1]);
+      if (token === "e2e-invite-token") {
+        return send(res, 200, {
+          email: "convidado@taskhive.test",
+          projectName: "Projeto Convite",
+        });
+      }
+      return send(res, 404, { message: "Convite inválido ou expirado." });
+    }
+
     if (req.method === "POST" && path === "/auth/login") {
       const body = await readBody(req);
       const user = usersByEmail.get(String(body?.email || "").toLowerCase());
@@ -349,6 +370,17 @@ const server = http.createServer(async (req, res) => {
         email,
         password: body.password,
         role: "CLIENT",
+        accountKind: body.accountKind === "COMPANY" ? "COMPANY" : "INDIVIDUAL",
+        document: body.document || null,
+        company:
+          body.accountKind === "COMPANY" && body.company
+            ? {
+                id: randomUUID(),
+                legalName: body.company.legalName,
+                tradeName: body.company.tradeName || null,
+                document: body.company.document || null,
+              }
+            : null,
       };
       registerUser(user);
       return send(res, 201, publicUser(user));
@@ -373,6 +405,18 @@ const server = http.createServer(async (req, res) => {
           role: u.role,
         }));
       return send(res, 200, list);
+    }
+
+    const userByIdMatch = /^\/users\/([^/]+)$/.exec(path);
+    if (req.method === "GET" && userByIdMatch) {
+      const actor = bearerUser(req);
+      if (!actor) return send(res, 401, { message: "Unauthorized" });
+      const found = usersById.get(userByIdMatch[1]);
+      if (!found) return send(res, 404, { message: "Usuário não encontrado" });
+      if (actor.id !== found.id && actor.role === "CLIENT") {
+        return send(res, 404, { message: "Usuário não encontrado" });
+      }
+      return send(res, 200, publicUser(found));
     }
 
     if (req.method === "GET" && path === "/users") {

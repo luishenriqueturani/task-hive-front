@@ -1,10 +1,17 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
-import { readApiErrorMessage } from "@/lib/api-error";
+import { useCallback, useEffect, useMemo, useReducer } from "react";
+import { AccountKindToggle } from "@/components/auth/account-kind-toggle";
+import {
+  buildRegisterRequestBody,
+  createRegisterFormState,
+  registerFormReducer,
+  validateRegisterForm,
+  type RegisterRequestBody,
+} from "@/components/auth/register-form-state";
 import {
   AUTH_FORM_ERROR_ID,
   FormError,
@@ -13,15 +20,12 @@ import {
   SubmitButton,
 } from "./form-field";
 import { GeneratePasswordButton } from "./generate-password-button";
+import { ACCOUNT_KIND } from "@/lib/account-kind";
+import { inviteQueryLooksLikeEmail } from "@/lib/br-documents";
+import { readApiErrorMessage } from "@/lib/api-error";
+import { fetchInvitePreview } from "@/lib/invites-api";
 
-interface RegisterData {
-  name: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-}
-
-async function registerRequest(data: RegisterData) {
+async function registerRequest(data: RegisterRequestBody) {
   const res = await fetch("/api/bff/users", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -34,7 +38,6 @@ async function registerRequest(data: RegisterData) {
     );
   }
 
-  // Autentica em seguida para estabelecer a sessão em cookie httpOnly.
   const login = await fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -45,77 +48,178 @@ async function registerRequest(data: RegisterData) {
 }
 
 /**
- * Formulário de cadastro: cria o usuário e já inicia a sessão.
- * Se o login automático falhar, encaminha à tela de login.
+ * Formulário de cadastro PF ou CNPJ. Cria o usuário e inicia a sessão.
+ * `inviteQuery` vem de `?invite=` (e-mail ou token de convite).
  */
-export function RegisterForm() {
+export function RegisterForm({ inviteQuery }: { inviteQuery?: string }) {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
+  const [state, dispatch] = useReducer(
+    registerFormReducer,
+    inviteQuery,
+    createRegisterFormState,
+  );
+
+  const inviteToken = useMemo(() => {
+    const raw = inviteQuery?.trim();
+    if (!raw || inviteQueryLooksLikeEmail(raw)) return undefined;
+    return raw;
+  }, [inviteQuery]);
+
+  const invite = useQuery({
+    queryKey: ["invite-preview", inviteToken],
+    queryFn: () => fetchInvitePreview(inviteToken!),
+    enabled: Boolean(inviteToken),
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (invite.data?.email) {
+      dispatch({ type: "lockEmailFromInvite", email: invite.data.email });
+    }
+  }, [invite.data?.email]);
 
   const register = useMutation({
     mutationFn: registerRequest,
     onSuccess: ({ autoLogin }) => {
-      setFormError(null);
+      dispatch({ type: "setFormError", formError: null });
       router.push(autoLogin ? "/dashboard" : "/login");
       router.refresh();
     },
     onError: (err: unknown) => {
-      setFormError(
-        err instanceof Error && err.message
-          ? err.message
-          : "Não foi possível concluir o cadastro.",
-      );
+      dispatch({
+        type: "setFormError",
+        formError:
+          err instanceof Error && err.message
+            ? err.message
+            : "Não foi possível concluir o cadastro.",
+      });
     },
   });
 
   const onSubmit = useCallback(
     (e: React.SubmitEvent<HTMLFormElement>) => {
       e.preventDefault();
-      setFormError(null);
-      if (!email.trim() || !password || !confirmPassword) {
-        setFormError("Preencha o e-mail e a senha.");
+      const error = validateRegisterForm(state);
+      if (error) {
+        dispatch({ type: "setFormError", formError: error });
         return;
       }
-      if (password !== confirmPassword) {
-        setFormError("As senhas não coincidem.");
-        return;
-      }
-      register.mutate({
-        name: name.trim(),
-        email: email.trim(),
-        password,
-        confirmPassword,
-      });
+      dispatch({ type: "setFormError", formError: null });
+      register.mutate(buildRegisterRequestBody(state, inviteToken));
     },
-    [name, email, password, confirmPassword, register],
+    [state, inviteToken, register],
   );
 
   const pending = register.isPending;
+  const isCompany = state.accountKind === ACCOUNT_KIND.COMPANY;
+  const inviteNotice = invite.isError
+    ? "Não foi possível validar o convite. Pode criar a conta na mesma."
+    : invite.data?.projectName
+      ? `Convite para o projecto “${invite.data.projectName}”.`
+      : state.emailLocked
+        ? "E-mail preenchido a partir do convite."
+        : null;
 
   return (
     <form
       className="mt-4 space-y-3 sm:mt-6 sm:space-y-4"
       onSubmit={onSubmit}
       noValidate
-      aria-describedby={formError ? AUTH_FORM_ERROR_ID : undefined}
+      aria-describedby={state.formError ? AUTH_FORM_ERROR_ID : undefined}
     >
-      <FormError message={formError} />
+      <FormError message={state.formError} />
+
+      <AccountKindToggle
+        value={state.accountKind}
+        onChange={(accountKind) =>
+          dispatch({ type: "setAccountKind", accountKind })
+        }
+        disabled={pending}
+      />
+
+      {invite.isPending ? (
+        <p className="text-xs text-app-muted">A carregar convite…</p>
+      ) : inviteNotice ? (
+        <p className="text-xs text-app-muted">{inviteNotice}</p>
+      ) : null}
 
       <FormField
         id="register-name"
-        label="Nome"
+        label={isCompany ? "Nome do responsável" : "Nome"}
         name="name"
         type="text"
         autoComplete="name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Seu nome"
+        value={state.name}
+        onChange={(e) => dispatch({ type: "setName", name: e.target.value })}
+        placeholder={isCompany ? "Nome de quem vai gerir a conta" : "Seu nome"}
         disabled={pending}
       />
+
+      {isCompany ? (
+        <>
+          <FormField
+            id="register-legal-name"
+            label="Razão social"
+            name="legalName"
+            type="text"
+            autoComplete="organization"
+            value={state.legalName}
+            onChange={(e) =>
+              dispatch({ type: "setLegalName", legalName: e.target.value })
+            }
+            placeholder="Empresa Exemplo Ltda"
+            disabled={pending}
+          />
+          <FormField
+            id="register-trade-name"
+            label="Nome fantasia"
+            name="tradeName"
+            type="text"
+            value={state.tradeName}
+            onChange={(e) =>
+              dispatch({ type: "setTradeName", tradeName: e.target.value })
+            }
+            placeholder="Opcional"
+            disabled={pending}
+            hint="Opcional"
+          />
+          <FormField
+            id="register-cnpj"
+            label="CNPJ"
+            name="companyDocument"
+            type="text"
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            value={state.companyDocument}
+            onChange={(e) =>
+              dispatch({
+                type: "setCompanyDocument",
+                companyDocument: e.target.value,
+              })
+            }
+            placeholder="00.000.000/0000-00"
+            disabled={pending}
+            hint="Letras ou números nas 12 primeiras posições."
+          />
+        </>
+      ) : (
+        <FormField
+          id="register-cpf"
+          label="CPF"
+          name="document"
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          value={state.document}
+          onChange={(e) =>
+            dispatch({ type: "setDocument", document: e.target.value })
+          }
+          placeholder="000.000.000-00"
+          disabled={pending}
+          hint="Opcional"
+        />
+      )}
 
       <FormField
         id="register-email"
@@ -123,11 +227,12 @@ export function RegisterForm() {
         name="email"
         type="email"
         autoComplete="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        value={state.email}
+        onChange={(e) => dispatch({ type: "setEmail", email: e.target.value })}
         placeholder="você@empresa.com.br"
-        disabled={pending}
-        aria-invalid={!!formError || undefined}
+        disabled={pending || state.emailLocked}
+        readOnly={state.emailLocked}
+        aria-invalid={!!state.formError || undefined}
       />
 
       <div>
@@ -136,17 +241,18 @@ export function RegisterForm() {
           label="Senha"
           name="password"
           autoComplete="new-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          value={state.password}
+          onChange={(e) =>
+            dispatch({ type: "setPassword", password: e.target.value })
+          }
           placeholder="••••••••"
           disabled={pending}
           hint="Mínimo 8 caracteres, com letra maiúscula, minúscula, número e símbolo."
         />
         <GeneratePasswordButton
-          onGenerate={(pwd) => {
-            setPassword(pwd);
-            setConfirmPassword(pwd);
-          }}
+          onGenerate={(pwd) =>
+            dispatch({ type: "setGeneratedPassword", password: pwd })
+          }
           disabled={pending}
         />
       </div>
@@ -156,8 +262,13 @@ export function RegisterForm() {
         label="Confirmar senha"
         name="confirmPassword"
         autoComplete="new-password"
-        value={confirmPassword}
-        onChange={(e) => setConfirmPassword(e.target.value)}
+        value={state.confirmPassword}
+        onChange={(e) =>
+          dispatch({
+            type: "setConfirmPassword",
+            confirmPassword: e.target.value,
+          })
+        }
         placeholder="••••••••"
         disabled={pending}
       />

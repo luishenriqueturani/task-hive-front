@@ -1,5 +1,17 @@
 import { cookies } from "next/headers";
 import { backendBase } from "@/lib/backend";
+import {
+  normalizeSessionUser,
+  type SessionUser,
+} from "@/lib/session-user";
+
+export type {
+  SessionCompany,
+  SessionPlan,
+  SessionPlanLimits,
+  SessionPlanUsage,
+  SessionUser,
+} from "@/lib/session-user";
 
 /**
  * Sessão do Task Hive: access JWT + refresh opaco em cookies httpOnly
@@ -44,13 +56,6 @@ export const refreshCookieOptions = {
   maxAge: REFRESH_MAX_AGE_SECONDS,
 };
 
-export interface SessionUser {
-  id: string;
-  name: string | null;
-  email: string;
-  role: string | null;
-}
-
 export async function getSessionToken(): Promise<string | null> {
   const store = await cookies();
   return store.get(SESSION_COOKIE)?.value ?? null;
@@ -77,18 +82,26 @@ export function decodeSessionUser(token: string): SessionUser | null {
       name?: string | null;
       email?: string;
       role?: string | null;
+      accountKind?: unknown;
+      company?: unknown;
+      ownedCompany?: unknown;
+      plan?: unknown;
       exp?: number;
     };
 
     if (payload.exp && payload.exp * 1000 <= Date.now()) return null;
     if (!payload.id || !payload.email) return null;
 
-    return {
+    return normalizeSessionUser({
       id: payload.id,
       name: payload.name ?? null,
       email: payload.email,
       role: payload.role ?? null,
-    };
+      accountKind: payload.accountKind,
+      company: payload.company,
+      ownedCompany: payload.ownedCompany,
+      plan: payload.plan,
+    });
   } catch {
     return null;
   }
@@ -117,15 +130,23 @@ async function fetchValidatedSessionUser(
       name?: string | null;
       email?: string;
       role?: string | null;
+      accountKind?: unknown;
+      company?: unknown;
+      ownedCompany?: unknown;
+      plan?: unknown;
     };
     if (!data.id || !data.email) return null;
 
-    return {
+    return normalizeSessionUser({
       id: data.id,
       name: data.name ?? null,
       email: data.email,
       role: data.role ?? null,
-    };
+      accountKind: data.accountKind,
+      company: data.company,
+      ownedCompany: data.ownedCompany,
+      plan: data.plan,
+    });
   } catch {
     return null;
   }
