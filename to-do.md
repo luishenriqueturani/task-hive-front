@@ -230,7 +230,7 @@ O layout completo do dashboard (duas listas de projectos) depende de **8.2**. A 
 - [x] **Manter** o atalho actual de adicionar participante por `userId` (user já registado); os dois caminhos respeitam o tecto de convidados.
 - [x] **Página pública `/invite/[token]`:** nome do projecto; sem sessão → login/cadastro com `next=`; com sessão → Aceitar.
 - [x] **Allowlist:** prefixo `invites`; matcher `/invite` no `proxy.ts` (página pública — não exigir cookie).
-- [ ] **Testes:** unit/RTL das duas secções e do fluxo de convite; E2E smoke convite + accept.
+- [x] **Testes:** unit/RTL das duas secções e do fluxo de convite; E2E smoke convite + accept.
 
 ### 8.3 Dashboard reorganizado e landing v1 (Onda 3)
 

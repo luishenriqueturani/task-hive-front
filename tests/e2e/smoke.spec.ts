@@ -279,6 +279,82 @@ test.describe("smoke Task Hive", () => {
     await expect(page.getByText("Comprar café")).toHaveCount(0);
   });
 
+  test("convite por e-mail, página pública e accept", async ({ page }) => {
+    await login(page);
+    await page.goto("/projects");
+    await expect(
+      page.getByRole("heading", { name: "Meus projetos" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Projetos em que fui convidado" }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: /Novo projeto/i }).click();
+    const createDialog = page.getByRole("dialog", { name: "Novo projeto" });
+    await createDialog.getByLabel("Nome").fill("Projeto Convite E2E");
+    await createDialog.getByRole("button", { name: "Criar projeto" }).click();
+    await expect(createDialog).toBeHidden();
+
+    await page.getByRole("link", { name: /Projeto Convite E2E/i }).click();
+    await expect(
+      page.getByRole("heading", { name: "Projeto Convite E2E" }),
+    ).toBeVisible();
+
+    const invitePosted = page.waitForResponse(
+      (res) =>
+        res.url().includes("/invites") &&
+        res.request().method() === "POST" &&
+        res.ok(),
+    );
+    await page
+      .getByLabel("Participantes")
+      .getByRole("button", { name: /Adicionar/i })
+      .click();
+    const addDialog = page.getByRole("dialog", {
+      name: "Adicionar participante",
+    });
+    await addDialog.getByLabel("E-mail", { exact: true }).fill(
+      "colega@taskhive.test",
+    );
+    await addDialog.getByRole("button", { name: /Convidar/i }).click();
+    const inviteBody = (await (await invitePosted).json()) as {
+      token?: string;
+    };
+    expect(inviteBody.token).toBeTruthy();
+    await expect(page.getByText("colega@taskhive.test")).toBeVisible();
+
+    await page.getByRole("button", { name: "Abrir perfil" }).click();
+    await page.getByRole("button", { name: "Sair da conta" }).click();
+    await expect(page).toHaveURL(/\/login/);
+
+    await page.goto(`/invite/${inviteBody.token}`);
+    await expect(page).toHaveURL(new RegExp(`/invite/${inviteBody.token}`));
+    await expect(
+      page.getByText(/Foi convidado para “Projeto Convite E2E”/),
+    ).toBeVisible();
+    await page.getByRole("link", { name: "Entrar" }).click();
+    await expect(page).toHaveURL(/\/login\?next=/);
+    await page.getByLabel("E-mail", { exact: true }).fill("colega@taskhive.test");
+    await page.getByLabel("Senha", { exact: true }).fill(SEED_PASSWORD);
+    await page.getByRole("button", { name: "Entrar" }).click();
+    await expect(page).toHaveURL(new RegExp(`/invite/${inviteBody.token}`));
+
+    await page.getByRole("button", { name: "Aceitar convite" }).click();
+    await expect(page).toHaveURL(/\/projects\/\d+/);
+    await expect(
+      page.getByRole("heading", { name: "Projeto Convite E2E" }),
+    ).toBeVisible();
+
+    await page.goto("/projects");
+    const invitedSection = page.getByRole("region", {
+      name: "Projetos em que fui convidado",
+    });
+    await expect(
+      invitedSection.getByRole("link", { name: /Projeto Convite E2E/i }),
+    ).toBeVisible();
+    await expect(invitedSection.getByText("Convidado", { exact: true })).toBeVisible();
+  });
+
   test("logout volta ao estado deslogado", async ({ page }) => {
     await login(page);
     await page.getByRole("button", { name: "Abrir perfil" }).click();
