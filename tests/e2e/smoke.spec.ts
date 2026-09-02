@@ -12,6 +12,39 @@ async function login(page: Page, email = SEED_EMAIL, password = SEED_PASSWORD) {
 }
 
 test.describe("smoke Task Hive", () => {
+  test("landing pública mostra produto, planos e CTAs", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByText(/Em construção/i)).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", {
+        name: /Organize projetos, tarefas e tempo/i,
+      }),
+    ).toBeVisible();
+    const sections = page.getByRole("navigation", { name: "Secções" });
+    await expect(sections.getByRole("link", { name: "Produto" })).toHaveAttribute(
+      "href",
+      "#produto",
+    );
+    await expect(sections.getByRole("link", { name: "Planos" })).toHaveAttribute(
+      "href",
+      "#planos",
+    );
+    await expect(page.getByRole("link", { name: "Entrar" })).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "Começar grátis" }).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "O que entra no dia a dia" }),
+    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Starter", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Pro", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Business", exact: true })).toBeVisible();
+    await expect(page.getByText(/Tarefas avulsas:/)).toHaveCount(3);
+    await page.getByRole("button", { name: "Empresas" }).click();
+    await expect(page.getByText(/Tarefas avulsas:/)).toHaveCount(0);
+    await expect(page.getByText(/Termos, privacidade e contacto/i)).toBeVisible();
+  });
+
   test("rota protegida sem sessão cai em /login?next=", async ({ page }) => {
     await page.goto("/projects");
     await expect(page).toHaveURL(/\/login\?next=%2Fprojects/);
@@ -21,6 +54,12 @@ test.describe("smoke Task Hive", () => {
     page,
   }) => {
     await login(page);
+    await expect(page.getByRole("heading", { name: "Tarefas avulsas" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Meus projetos" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Projetos em que fui convidado" }),
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "Ver todas" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Abrir perfil" })).toBeVisible();
     // nome no header (visível em lg+) ou no drawer
     await page.getByRole("button", { name: "Abrir perfil" }).click();

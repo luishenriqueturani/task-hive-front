@@ -236,9 +236,9 @@ O layout completo do dashboard (duas listas de projectos) depende de **8.2**. A 
 
 Pode avançar em paralelo com 8.1 (landing estática e coluna de to-dos). As duas secções de projectos no dashboard dependem de 8.2.
 
-- [ ] **Landing comercial em `/`:** substituir “Em construção”. Header (logo, âncoras Produto/Planos, Entrar / Começar grátis), hero, 3–4 blocos de produto, cards de planos com copy estática (Starter / Pro / Business — ver plano §5.2), CTA, footer placeholder. Com sessão: “Abrir painel”. Componentes em `src/components/landing/`.
-- [ ] **Dashboard duas colunas (só esta página):** esquerda ~280–320px sticky com tarefas avulsas (lista compacta + “Ver todas” → `/to-do`); centro só projectos (próprios em cima, convidados em baixo). CNPJ: sem coluna esquerda, centro à largura. Mobile: to-dos em accordion acima. Alargar o `main` do dashboard (`max-w-7xl` ou full); resto da app pode manter `max-w-6xl`.
-- [ ] **Testes:** unit/RTL de `ProjectsSection` / `ToDosSection` (loading, vazio, erro, links — já pendente na Fase 7.3) e do layout em colunas; E2E smoke da landing pública.
+- [x] **Landing comercial em `/`:** substituir “Em construção”. Header (logo, âncoras Produto/Planos, Entrar / Começar grátis), hero, 3–4 blocos de produto, cards de planos com copy estática (Starter / Pro / Business — ver plano §5.2), CTA, footer placeholder. Com sessão: “Abrir painel”. Componentes em `src/components/landing/`.
+- [x] **Dashboard duas colunas (só esta página):** esquerda ~280–320px sticky com tarefas avulsas (lista compacta + “Ver todas” → `/to-do`); centro só projectos (próprios em cima, convidados em baixo). CNPJ: sem coluna esquerda, centro à largura. Mobile: to-dos em accordion acima. Alargar o `main` do dashboard (`max-w-7xl` ou full); resto da app pode manter `max-w-6xl`.
+- [x] **Testes:** unit/RTL de `ProjectsSection` / `ToDosSection` (loading, vazio, erro, links — já pendente na Fase 7.3) e do layout em colunas; E2E smoke da landing pública.
 
 ### 8.4 Planos, quotas, cupons e catálogo admin (Onda 4)
 

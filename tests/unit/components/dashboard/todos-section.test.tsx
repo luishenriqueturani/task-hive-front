@@ -1,4 +1,5 @@
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ToDosSection } from "@/components/dashboard/todos-section";
 import type { ToDoSummary } from "@/lib/api-types";
@@ -38,6 +39,25 @@ describe("ToDosSection", () => {
     expect(document.querySelector("[aria-hidden]")).toBeInTheDocument();
   });
 
+  it("recolhe a lista no accordion", async () => {
+    const user = userEvent.setup();
+    mockTodosList([openTodo]);
+
+    renderWithProviders(<ToDosSection />);
+    await screen.findByText("Estudar Nest");
+
+    const toggle = screen.getByRole("button", {
+      name: "Recolher tarefas avulsas",
+    });
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+
+    await user.click(toggle);
+
+    expect(
+      screen.getByRole("button", { name: "Expandir tarefas avulsas" }),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("mostra erro de carregamento", async () => {
     vi.mocked(fetch).mockResolvedValue(new Response("fail", { status: 500 }));
 
@@ -46,6 +66,10 @@ describe("ToDosSection", () => {
     expect(
       await screen.findByText(/Não foi possível carregar suas tarefas/i),
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Ver todas" })).toHaveAttribute(
+      "href",
+      "/to-do",
+    );
   });
 
   it("mostra estado vazio quando não há tarefas abertas", async () => {
@@ -60,6 +84,10 @@ describe("ToDosSection", () => {
       await screen.findByText(/Nenhuma tarefa pendente/i),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Gerir tarefas" })).toHaveAttribute(
+      "href",
+      "/to-do",
+    );
+    expect(screen.getByRole("link", { name: "Ver todas" })).toHaveAttribute(
       "href",
       "/to-do",
     );
@@ -125,5 +153,21 @@ describe("ToDosSection", () => {
     expect(links.every((link) => link.getAttribute("href") === "/to-do")).toBe(
       true,
     );
+    expect(screen.getByRole("link", { name: "Ver todas" })).toHaveAttribute(
+      "href",
+      "/to-do",
+    );
+  });
+
+  it("consulta a API de tarefas com credenciais", async () => {
+    mockTodosList([]);
+
+    renderWithProviders(<ToDosSection />);
+
+    await screen.findByText(/Nenhuma tarefa pendente/i);
+
+    expect(fetch).toHaveBeenCalledWith("/api/bff/to-do", {
+      credentials: "include",
+    });
   });
 });
