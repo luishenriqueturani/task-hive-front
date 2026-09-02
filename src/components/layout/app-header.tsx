@@ -17,9 +17,7 @@ export function AppHeader({ user }: { user: SessionUser }) {
     <header className="relative z-10 border-b border-app-border/80 bg-app-surface/40 backdrop-blur-xl">
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex items-center gap-6">
-          <Link href="/dashboard" aria-label="Ir ao painel">
-            <AppLogo />
-          </Link>
+          <AppLogo href="/dashboard" linkAriaLabel="Ir ao painel" />
 
           <nav className="hidden items-center gap-1 md:flex" aria-label="Principal">
             {NAV_ITEMS.map((item) =>

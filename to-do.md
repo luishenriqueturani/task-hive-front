@@ -187,16 +187,15 @@ Regra: **cada nova tela/feature da Fase 3+ inclui testes unit/RTL na mesma entre
 - [x] **Mock E2E — project-stages:** listagem por projeto + CRUD de colunas no mock.
 - [x] **Mock E2E — tasks:** `GET /tasks/stage/:id`, POST/PATCH/DELETE de tarefas no mock.
 - [x] **Estender mock E2E:** subtasks, timetrack e to-do em `tests/e2e/mock-backend.mjs`.
-- [ ] **Forgot-password (unit/RTL):** formulário e estados de sucesso/erro (fluxo feliz E2E depende de e-mail no backend).
-- [ ] **Dashboard (unit/RTL):** `ProjectsSection` / `ToDosSection` (loading, vazio, erro, links) — incluir na entrega da Fase 8.3.
-- [ ] **Acessibilidade automatizada:** axe (ou similar) nos formulários e shell autenticado.
-- [ ] **CI:** pipeline com `lint` + `build` + `npm test` + (opcional) `npm run test:e2e`.
+- [x] **Forgot-password (unit/RTL):** formulário e estados de sucesso/erro (fluxo feliz E2E depende de e-mail no backend).
+- [x] **Dashboard (unit/RTL):** `ProjectsSection` / `ToDosSection` (loading, vazio, erro, links) — incluir na entrega da Fase 8.3.
+- [x] **Acessibilidade automatizada:** axe (ou similar) nos formulários e shell autenticado.
+- [x] **CI:** pipeline com `lint` + `build` + `npm test` + (opcional) `npm run test:e2e`.
 
 ### 7.4 DX e deploy
 
 - [ ] **README do frontend:** substituir template create-next-app por guia Task Hive (setup, env, `api:generate`, dev com backend) — a secção de testes já está no README.
 - [ ] **Acessibilidade manual:** revisar formulários, foco, `aria-*`, contraste no tema escuro.
-- [ ] **Responsivo:** kanban utilizável em tablet/mobile (scroll horizontal, modais).
 - [ ] **Variáveis de ambiente documentadas** em `.env.example` (prod vs dev).
 
 ---

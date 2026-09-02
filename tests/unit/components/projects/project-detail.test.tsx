@@ -103,7 +103,7 @@ describe("ProjectDetail", () => {
     expect(screen.getByRole("menuitem", { name: "Excluir" })).toBeInTheDocument();
     expect(await screen.findByText("Bob")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Adicionar", exact: true }),
+      screen.getByRole("button", { name: /^Adicionar$/ }),
     ).toBeInTheDocument();
   });
 
@@ -116,7 +116,7 @@ describe("ProjectDetail", () => {
       screen.queryByRole("button", { name: "Mais ações do projeto" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Adicionar", exact: true }),
+      screen.queryByRole("button", { name: /^Adicionar$/ }),
     ).not.toBeInTheDocument();
   });
 

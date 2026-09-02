@@ -10,6 +10,10 @@ import { useSyncExternalStore } from "react";
 type AppLogoProps = {
   /** Tamanho maior na página de login. */
   prominent?: boolean;
+  /** Destino do link (padrão: home pública). */
+  href?: string;
+  /** Rótulo acessível quando o link não é só o logotipo. */
+  linkAriaLabel?: string;
 };
 
 const subscribe = () => () => {};
@@ -19,7 +23,11 @@ const getServerSnapshot = () => false;
 /**
  * Logotipo + nome: no tema claro usa a arte azul; no escuro, a arte mel (contraste).
  */
-export function AppLogo({ prominent }: AppLogoProps) {
+export function AppLogo({
+  prominent,
+  href = "/",
+  linkAriaLabel,
+}: AppLogoProps) {
   const { resolvedTheme } = useTheme();
   const mounted = useSyncExternalStore(
     subscribe,
@@ -33,7 +41,8 @@ export function AppLogo({ prominent }: AppLogoProps) {
 
   return (
     <Link
-      href="/"
+      href={href}
+      aria-label={linkAriaLabel}
       className="group inline-flex items-center gap-3 sm:gap-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2 focus-visible:ring-offset-app-bg rounded-lg"
     >
       <Image
