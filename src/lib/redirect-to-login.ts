@@ -1,4 +1,5 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { isAdminRole } from "@/lib/account-kind";
 import { logAuthNavigation } from "@/lib/auth-navigation-log";
 import { loginRedirectTargetFromServer } from "@/lib/login-redirect-path";
 import { getSessionUser, type SessionUser } from "@/lib/session";
@@ -26,6 +27,17 @@ export async function requireSessionUser(
   if (!user) {
     await redirectToLogin(next);
     throw new Error("requireSessionUser: unreachable");
+  }
+  return user;
+}
+
+/** Sessão admin ou 404 — CLIENT não deve descobrir que `/admin` existe. */
+export async function requireAdmin(
+  next: string | null = "/admin",
+): Promise<SessionUser> {
+  const user = await requireSessionUser(next);
+  if (!isAdminRole(user.role)) {
+    notFound();
   }
   return user;
 }

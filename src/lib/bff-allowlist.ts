@@ -23,6 +23,8 @@ export const BFF_ALLOWED_PREFIXES = [
   "companies",
   "personal-access-tokens",
   "invites",
+  "plans",
+  "admin",
 ] as const;
 
 export function isBffPathAllowed(joined: string): boolean {

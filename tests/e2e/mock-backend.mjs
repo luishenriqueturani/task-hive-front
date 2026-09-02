@@ -419,6 +419,47 @@ const server = http.createServer(async (req, res) => {
       return send(res, 404, { message: "Convite inválido ou expirado." });
     }
 
+    if (req.method === "GET" && path === "/plans") {
+      return send(res, 200, [
+        {
+          slug: "starter",
+          name: "Starter",
+          accountKind: "BOTH",
+          priceCents: 2900,
+          currency: "BRL",
+          maxProjects: 5,
+          maxApiKeys: 2,
+          maxStandaloneTasks: 30,
+          maxProjectGuests: 3,
+          benefits: [{ title: "Quadros Kanban" }],
+        },
+        {
+          slug: "pro",
+          name: "Pro",
+          accountKind: "BOTH",
+          priceCents: 7900,
+          currency: "BRL",
+          maxProjects: 20,
+          maxApiKeys: 10,
+          maxStandaloneTasks: 200,
+          maxProjectGuests: 15,
+          benefits: [{ title: "Tudo do Starter" }],
+        },
+        {
+          slug: "business",
+          name: "Business",
+          accountKind: "BOTH",
+          priceCents: 19900,
+          currency: "BRL",
+          maxProjects: -1,
+          maxApiKeys: -1,
+          maxStandaloneTasks: -1,
+          maxProjectGuests: -1,
+          benefits: [{ title: "Quotas ilimitadas" }],
+        },
+      ]);
+    }
+
     if (req.method === "POST" && path === "/auth/login") {
       const body = await readBody(req);
       const user = usersByEmail.get(String(body?.email || "").toLowerCase());

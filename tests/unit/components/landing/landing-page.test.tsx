@@ -1,10 +1,16 @@
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { LandingPage } from "@/components/landing/landing-page";
 import { renderWithAppProviders } from "@tests/helpers/app-render";
 
 describe("LandingPage", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("fail", { status: 500 })),
+    );
+  });
   it("substitui Em construção e mostra produto e planos", () => {
     renderWithAppProviders(<LandingPage signedIn={false} />);
 
@@ -66,5 +72,67 @@ describe("LandingPage", () => {
     expect(screen.queryByText(/Tarefas avulsas:/)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Pessoas" }));
     expect(screen.getAllByText(/Tarefas avulsas:/).length).toBe(3);
+  });
+
+  it("usa os cards de GET /plans quando a API responde", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify([
+            {
+              slug: "starter",
+              name: "Starter API",
+              accountKind: "BOTH",
+              priceCents: 3100,
+              currency: "BRL",
+              maxProjects: 7,
+              maxApiKeys: 2,
+              maxStandaloneTasks: 30,
+              maxProjectGuests: 3,
+              benefits: [{ title: "Kanban extra" }],
+            },
+            {
+              slug: "pro",
+              name: "Pro",
+              accountKind: "BOTH",
+              priceCents: 7900,
+              currency: "BRL",
+              maxProjects: 20,
+              maxApiKeys: 10,
+              maxStandaloneTasks: 200,
+              maxProjectGuests: 15,
+              benefits: [{ title: "Tudo do Starter" }],
+            },
+            {
+              slug: "business",
+              name: "Business",
+              accountKind: "COMPANY",
+              priceCents: 19900,
+              currency: "BRL",
+              maxProjects: -1,
+              maxApiKeys: -1,
+              maxStandaloneTasks: -1,
+              maxProjectGuests: -1,
+              benefits: [{ title: "Quotas ilimitadas" }],
+            },
+          ]),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      ),
+    );
+
+    renderWithAppProviders(<LandingPage signedIn={false} />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Starter API" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Kanban extra")).toBeInTheDocument();
+    expect(screen.getByText(/Projectos: 7/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: /^Starter$/ }),
+      ).not.toBeInTheDocument();
+    });
   });
 });

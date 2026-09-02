@@ -1,20 +1,38 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 import {
   formatPlanQuota,
   LANDING_PLANS,
+  type LandingPlan,
 } from "@/components/landing/plans-catalog";
+import {
+  fetchPublicPlans,
+  PUBLIC_PLANS_QUERY_KEY,
+} from "@/lib/plans-api";
 
 type Audience = "person" | "company";
 
+function useLandingPlans(): LandingPlan[] {
+  const catalog = useQuery({
+    queryKey: PUBLIC_PLANS_QUERY_KEY,
+    queryFn: fetchPublicPlans,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+  if (catalog.data && catalog.data.length > 0) return catalog.data;
+  return LANDING_PLANS;
+}
+
 /**
- * Cards de planos com copy estática (§5.2). O toggle Empresa esconde
- * tarefas avulsas (não aplicam a contas CNPJ).
+ * Cards de planos a partir de `GET /plans`, com fallback estático.
+ * O toggle Empresa esconde tarefas avulsas (não aplicam a contas CNPJ).
  */
 export function LandingPlans({ signedIn }: { signedIn: boolean }) {
   const [audience, setAudience] = useState<Audience>("person");
+  const plans = useLandingPlans();
   const ctaHref = signedIn ? "/dashboard" : "/register";
   const ctaLabel = signedIn ? "Abrir painel" : "Começar grátis";
 
@@ -61,7 +79,7 @@ export function LandingPlans({ signedIn }: { signedIn: boolean }) {
         </div>
 
         <ul className="mt-8 grid gap-4 lg:grid-cols-3">
-          {LANDING_PLANS.map((plan) => (
+          {plans.map((plan) => (
             <li
               key={plan.slug}
               className={`flex flex-col rounded-2xl border bg-app-surface/70 p-5 shadow-sm backdrop-blur-xl ${

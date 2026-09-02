@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { FaUser, FaXmark } from "react-icons/fa6";
 import { LogoutButton } from "@/components/auth/logout-button";
 import type { SessionUser } from "@/lib/session";
+import { isAdminRole } from "@/lib/account-kind";
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN_GOD: "Administrador",
@@ -134,6 +135,15 @@ export function UserMenu({ user }: { user: SessionUser }) {
             </dl>
 
             <div className="mt-auto space-y-4 pt-6">
+              {isAdminRole(user.role) ? (
+                <Link
+                  href="/admin/plans"
+                  onClick={close}
+                  className="block rounded-lg border border-app-border/70 px-3 py-2 text-sm text-app-text transition hover:bg-app-surface-elevated/90"
+                >
+                  Administração
+                </Link>
+              ) : null}
               <Link
                 href="/settings/plan"
                 onClick={close}

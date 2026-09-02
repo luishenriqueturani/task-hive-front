@@ -1,7 +1,7 @@
-/** Catálogo estático da landing v1 (plano §5.2). Trial não entra nestes cards. */
+/** Catálogo estático da landing (fallback se `GET /plans` falhar). Trial não entra. */
 
 export type LandingPlan = {
-  slug: "starter" | "pro" | "business";
+  slug: string;
   name: string;
   priceLabel: string;
   audience: string;
@@ -11,6 +11,20 @@ export type LandingPlan = {
   maxStandaloneTasks: number;
   maxProjectGuests: number;
   benefits: string[];
+};
+
+export type CatalogPlanInput = {
+  slug: string;
+  name: string;
+  description?: string | null;
+  accountKind?: string;
+  priceCents?: number;
+  currency?: string;
+  maxProjects: number;
+  maxApiKeys: number;
+  maxStandaloneTasks: number;
+  maxProjectGuests: number;
+  benefits?: Array<string | { title: string }>;
 };
 
 export const LANDING_PLANS: LandingPlan[] = [
@@ -62,4 +76,38 @@ export const LANDING_PLANS: LandingPlan[] = [
 
 export function formatPlanQuota(value: number): string {
   return value < 0 ? "Ilimitado" : String(value);
+}
+
+export function formatPriceLabel(cents: number, currency = "BRL"): string {
+  if (cents <= 0) return "Grátis";
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: cents % 100 === 0 ? 0 : 2,
+  }).format(cents / 100);
+}
+
+export function audienceLabel(accountKind: string | undefined): string {
+  if (accountKind === "COMPANY") return "Empresas";
+  if (accountKind === "INDIVIDUAL") return "Pessoas";
+  if (accountKind === "BOTH") return "Pessoas e empresas";
+  return "Pessoas e empresas";
+}
+
+export function mapCatalogPlan(plan: CatalogPlanInput): LandingPlan {
+  const benefits = (plan.benefits ?? []).map((item) =>
+    typeof item === "string" ? item : item.title,
+  );
+  return {
+    slug: plan.slug,
+    name: plan.name,
+    priceLabel: formatPriceLabel(plan.priceCents ?? 0, plan.currency ?? "BRL"),
+    audience: audienceLabel(plan.accountKind),
+    highlight: plan.slug === "pro",
+    maxProjects: plan.maxProjects,
+    maxApiKeys: plan.maxApiKeys,
+    maxStandaloneTasks: plan.maxStandaloneTasks,
+    maxProjectGuests: plan.maxProjectGuests,
+    benefits,
+  };
 }

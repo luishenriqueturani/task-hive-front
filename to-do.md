@@ -246,16 +246,16 @@ Pode avançar em paralelo com 8.1 (landing estática e coluna de to-dos). As dua
 - [x] **Limites na UI:** desactivar Criar projecto / Criar to-do / Gerar token / Convidar com tooltip “Limite do plano” e link para `/settings/plan`.
 - [x] **`/settings/plan`:** plano actual, usage, tabela de upgrade **informativa** (sem checkout).
 - [x] **PAT:** mostrar `x / max` chaves em `/settings/api-tokens`.
-- [ ] **Landing v2:** cards a partir de `GET /plans`; fallback para copy estática se a API falhar. Toggle PF / Empresa esconde a linha “tarefas avulsas”.
-- [ ] **Admin — planos:** `/admin/plans` — lista + editor de quotas (`maxProjects`, `maxApiKeys`, `maxStandaloneTasks`, `maxProjectGuests`) e CRUD da área de benefícios (`PlanBenefit`). Não apagar plano `isSystem` (`free-trial`).
+- [x] **Landing v2:** cards a partir de `GET /plans`; fallback para copy estática se a API falhar. Toggle PF / Empresa esconde a linha “tarefas avulsas”.
+- [x] **Admin — planos:** `/admin/plans` — lista + editor de quotas (`maxProjects`, `maxApiKeys`, `maxStandaloneTasks`, `maxProjectGuests`) e CRUD da área de benefícios (`PlanBenefit`). Não apagar plano `isSystem` (`free-trial`).
 - [ ] **Admin — cupons:** `/admin/coupons` — CRUD (código, percent/fixo, datas, tecto de usos, planos aplicáveis) e redemptions.
-- [ ] **Allowlist:** prefixos `plans` e `admin`.
+- [x] **Allowlist:** prefixos `plans` e `admin`.
 - [ ] **Testes:** unit/RTL dos botões no limite e dos cards da landing; E2E admin planos (role admin).
 
 ### 8.5 Painel admin — utilizadores e empresas (Onda 5)
 
 - [ ] **Shell admin:** grupo `(admin)`, `src/app/(admin)/layout.tsx` — nav lateral (desktop) + header próprios. `requireAdmin()`; `CLIENT` → `notFound()` (não revelar `/admin`). Matcher `/admin` no `proxy.ts`.
-- [ ] **Link Administração** no `UserMenu` quando `ADMIN_GOD` ou `ADMIN_COLLABORATOR`.
+- [x] **Link Administração** no `UserMenu` quando `ADMIN_GOD` ou `ADMIN_COLLABORATOR`.
 - [ ] **`/admin`:** resumo (nº users, empresas, tickets abertos).
 - [ ] **`/admin/users`:** tabela paginada, busca, filtros (`accountKind`, `planSlug`, `role`), detalhe (usage + projectos), atribuir plano (+ cupom opcional).
 - [ ] **`/admin/companies`:** tabela paginada, busca, filtros, detalhe (owner, projectos, plano), atribuir plano. **Não** usar `GET /users` / `GET /companies` sem paginação; usar `/admin/users` e `/admin/companies`.

@@ -8,6 +8,9 @@ describe("BFF allowlist (onda 1)", () => {
     expect(isBffPathAllowed("invites/token-abc/accept")).toBe(true);
     expect(isBffPathAllowed("to-do")).toBe(true);
     expect(isBffPathAllowed("users")).toBe(true);
+    expect(isBffPathAllowed("plans")).toBe(true);
+    expect(isBffPathAllowed("admin/plans")).toBe(true);
+    expect(isBffPathAllowed("admin/plans/id/benefits")).toBe(true);
   });
 
   it("continua a recusar paths fora da lista", () => {

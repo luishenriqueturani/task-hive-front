@@ -37,6 +37,21 @@ describe("UserMenu", () => {
     expect(
       screen.getByRole("button", { name: "Sair da conta" }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Administração" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("mostra Administração para roles admin", async () => {
+    const ue = userEvent.setup();
+    renderWithProviders(
+      <UserMenu user={sessionUserFixture({ role: "ADMIN_GOD" })} />,
+    );
+    await ue.click(screen.getByRole("button", { name: "Abrir perfil" }));
+    expect(screen.getByRole("link", { name: "Administração" })).toHaveAttribute(
+      "href",
+      "/admin/plans",
+    );
   });
 
   it("fecha o drawer pelo botão", async () => {
