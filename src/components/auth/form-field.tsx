@@ -4,7 +4,15 @@ import { useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa6";
 
 const INPUT_CLASSES =
-  "w-full rounded-lg border border-app-border bg-app-surface px-2 py-2 text-app-text shadow-sm outline-none transition placeholder:text-app-muted focus:border-app-accent focus:ring-2 focus:ring-app-accent/25 sm:px-3 sm:py-2.5";
+  "w-full rounded-lg border border-app-border bg-app-surface px-2 py-2 text-app-text shadow-sm outline-none transition placeholder:text-app-muted focus:border-app-accent focus:ring-2 focus:ring-app-accent/25 focus-visible:outline-none sm:px-3 sm:py-2.5";
+
+/** Id partilhado para `aria-describedby` nos formulários auth. */
+export const AUTH_FORM_ERROR_ID = "auth-form-error";
+
+function describedBy(...ids: Array<string | undefined | false>): string | undefined {
+  const value = ids.filter(Boolean).join(" ");
+  return value || undefined;
+}
 
 /** Campo de formulário padrão das telas de autenticação (label + input). */
 export function FormField({
@@ -17,6 +25,9 @@ export function FormField({
   label: string;
   hint?: string;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
+  const hintId = hint ? `${id}-hint` : undefined;
+  const { "aria-describedby": ariaDescribedBy, ...rest } = inputProps;
+
   return (
     <div>
       <label htmlFor={id} className="block text-sm font-medium text-app-text">
@@ -25,9 +36,14 @@ export function FormField({
       <input
         id={id}
         className={`${INPUT_CLASSES} mt-1 sm:mt-1.5`}
-        {...inputProps}
+        {...rest}
+        aria-describedby={describedBy(hintId, ariaDescribedBy)}
       />
-      {hint ? <p className="mt-1 text-xs text-app-muted">{hint}</p> : null}
+      {hint ? (
+        <p id={hintId} className="mt-1 text-xs text-app-muted">
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -44,6 +60,8 @@ export function PasswordField({
   hint?: string;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "type">) {
   const [visible, setVisible] = useState(false);
+  const hintId = hint ? `${id}-hint` : undefined;
+  const { "aria-describedby": ariaDescribedBy, ...rest } = inputProps;
 
   return (
     <div>
@@ -55,7 +73,8 @@ export function PasswordField({
           id={id}
           type={visible ? "text" : "password"}
           className={`${INPUT_CLASSES} pr-10`}
-          {...inputProps}
+          {...rest}
+          aria-describedby={describedBy(hintId, ariaDescribedBy)}
         />
         <button
           type="button"
@@ -71,7 +90,11 @@ export function PasswordField({
           )}
         </button>
       </div>
-      {hint ? <p className="mt-1 text-xs text-app-muted">{hint}</p> : null}
+      {hint ? (
+        <p id={hintId} className="mt-1 text-xs text-app-muted">
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -98,10 +121,17 @@ export function SubmitButton({
 }
 
 /** Alerta de erro dos formulários de autenticação. */
-export function FormError({ message }: { message: string | null }) {
+export function FormError({
+  message,
+  id = AUTH_FORM_ERROR_ID,
+}: {
+  message: string | null;
+  id?: string;
+}) {
   if (!message) return null;
   return (
     <p
+      id={id}
       className="rounded-lg border border-red-500/40 bg-red-500/10 px-2 py-1.5 text-sm text-red-700 dark:text-red-200 sm:px-3 sm:py-2"
       role="alert"
     >

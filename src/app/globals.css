@@ -23,7 +23,8 @@ html.dark {
   --app-accent: #f59e0b;
   --app-accent-secondary: #fbbf24;
   --app-text: #f3f4f6;
-  --app-muted: #9ca3af;
+  /* Contraste AA sobre superfícies escuras (~5:1 com #1f2937). */
+  --app-muted: #b0b8c4;
   --app-border: #374151;
 }
 

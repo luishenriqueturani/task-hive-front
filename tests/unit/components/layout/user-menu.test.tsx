@@ -24,7 +24,7 @@ describe("UserMenu", () => {
 
     await ue.click(screen.getByRole("button", { name: "Abrir perfil" }));
 
-    const dialog = await screen.findByRole("dialog", { name: "Perfil" });
+    const dialog = await screen.findByRole("dialog", { name: "Meu perfil" });
     expect(dialog).toBeInTheDocument();
     expect(screen.getByText("Meu perfil")).toBeInTheDocument();
     // e-mail aparece no subtítulo do avatar e na linha "E-mail"
@@ -43,7 +43,7 @@ describe("UserMenu", () => {
     await ue.click(screen.getByRole("button", { name: "Fechar perfil" }));
 
     expect(
-      screen.queryByRole("dialog", { name: "Perfil" }),
+      screen.queryByRole("dialog", { name: "Meu perfil" }),
     ).not.toBeInTheDocument();
   });
 });

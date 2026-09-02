@@ -24,7 +24,7 @@ test.describe("smoke Task Hive", () => {
     await expect(page.getByRole("button", { name: "Abrir perfil" })).toBeVisible();
     // nome no header (visível em lg+) ou no drawer
     await page.getByRole("button", { name: "Abrir perfil" }).click();
-    await expect(page.getByRole("dialog", { name: "Perfil" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Meu perfil" })).toBeVisible();
     await expect(page.getByText("Usuário E2E").first()).toBeVisible();
     await expect(page.getByText(SEED_EMAIL).first()).toBeVisible();
   });
@@ -251,7 +251,7 @@ test.describe("smoke Task Hive", () => {
   test("logout volta ao estado deslogado", async ({ page }) => {
     await login(page);
     await page.getByRole("button", { name: "Abrir perfil" }).click();
-    await expect(page.getByRole("dialog", { name: "Perfil" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Meu perfil" })).toBeVisible();
     await page.getByRole("button", { name: "Sair da conta" }).click();
     await expect(page).toHaveURL(/\/login/);
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FaUser, FaXmark } from "react-icons/fa6";
 import { LogoutButton } from "@/components/auth/logout-button";
@@ -51,6 +51,8 @@ function ProfileRow({ label, value }: { label: string; value: string }) {
  */
 export function UserMenu({ user }: { user: SessionUser }) {
   const [open, setOpen] = useState(false);
+  const titleId = useId();
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   const close = useCallback(() => setOpen(false), []);
 
@@ -60,6 +62,7 @@ export function UserMenu({ user }: { user: SessionUser }) {
       if (e.key === "Escape") close();
     };
     document.addEventListener("keydown", onKeyDown);
+    closeRef.current?.focus();
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [open, close]);
 
@@ -86,7 +89,7 @@ export function UserMenu({ user }: { user: SessionUser }) {
       */}
       {open
         ? createPortal(
-            <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Perfil">
+            <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-labelledby={titleId}>
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={close}
@@ -95,13 +98,14 @@ export function UserMenu({ user }: { user: SessionUser }) {
 
           <aside className="absolute inset-y-0 right-0 flex w-full max-w-sm flex-col border-l border-app-border/70 bg-app-surface p-5 shadow-2xl sm:p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-app-text">
+              <h2 id={titleId} className="text-base font-semibold text-app-text">
                 Meu perfil
               </h2>
               <button
+                ref={closeRef}
                 type="button"
                 onClick={close}
-                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-app-muted transition hover:bg-app-surface-elevated/90 hover:text-app-text"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-app-muted transition hover:bg-app-surface-elevated/90 hover:text-app-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent/50"
                 aria-label="Fechar perfil"
               >
                 <FaXmark className="h-4 w-4" aria-hidden />

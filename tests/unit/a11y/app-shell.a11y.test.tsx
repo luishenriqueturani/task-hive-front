@@ -43,7 +43,7 @@ describe("a11y — shell autenticado", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Abrir perfil" }));
-    await screen.findByRole("dialog", { name: "Perfil" });
+    await screen.findByRole("dialog", { name: "Meu perfil" });
 
     await expectNoA11yViolations(container);
   });

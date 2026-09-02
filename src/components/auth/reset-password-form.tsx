@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { readApiErrorMessage } from "@/lib/api-error";
 import {
+  AUTH_FORM_ERROR_ID,
   FormError,
   PasswordField,
   SubmitButton,
@@ -138,7 +139,12 @@ export function ResetPasswordForm({ token: tokenFromUrl }: { token?: string }) {
   const pending = reset.isPending;
 
   return (
-    <form className="mt-4 space-y-3 sm:mt-6 sm:space-y-4" onSubmit={onSubmit} noValidate>
+    <form
+      className="mt-4 space-y-3 sm:mt-6 sm:space-y-4"
+      onSubmit={onSubmit}
+      noValidate
+      aria-describedby={formError ? AUTH_FORM_ERROR_ID : undefined}
+    >
       <FormError message={formError} />
 
       <div>
@@ -152,6 +158,7 @@ export function ResetPasswordForm({ token: tokenFromUrl }: { token?: string }) {
           placeholder="••••••••"
           disabled={pending}
           hint="Mínimo 8 caracteres, com letra maiúscula, minúscula, número e símbolo."
+          aria-invalid={!!formError || undefined}
         />
         <GeneratePasswordButton
           onGenerate={(pwd) => {
@@ -171,6 +178,7 @@ export function ResetPasswordForm({ token: tokenFromUrl }: { token?: string }) {
         onChange={(e) => setConfirmPassword(e.target.value)}
         placeholder="••••••••"
         disabled={pending}
+        aria-invalid={!!formError || undefined}
       />
 
       <SubmitButton pending={pending} pendingLabel="Redefinindo…">

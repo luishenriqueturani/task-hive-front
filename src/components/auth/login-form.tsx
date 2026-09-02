@@ -7,6 +7,7 @@ import { useCallback, useState } from "react";
 import { readApiErrorMessage } from "@/lib/api-error";
 import { safeNextPath } from "@/lib/safe-next-path";
 import {
+  AUTH_FORM_ERROR_ID,
   FormError,
   FormField,
   PasswordField,
@@ -78,7 +79,12 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
         Entre com sua conta Task Hive para continuar.
       </p>
 
-      <form className="mt-4 space-y-2 sm:mt-8 sm:space-y-5" onSubmit={onSubmit} noValidate>
+      <form
+        className="mt-4 space-y-2 sm:mt-8 sm:space-y-5"
+        onSubmit={onSubmit}
+        noValidate
+        aria-describedby={formError ? AUTH_FORM_ERROR_ID : undefined}
+      >
         <FormError message={formError} />
 
         <FormField
@@ -91,7 +97,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="você@empresa.com.br"
           disabled={pending}
-          aria-invalid={!!formError}
+          aria-invalid={!!formError || undefined}
         />
 
         <div>
@@ -104,6 +110,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
             disabled={pending}
+            aria-invalid={!!formError || undefined}
           />
           <p className="mt-1.5 text-right text-sm">
             <Link

@@ -194,9 +194,9 @@ Regra: **cada nova tela/feature da Fase 3+ inclui testes unit/RTL na mesma entre
 
 ### 7.4 DX e deploy
 
-- [ ] **README do frontend:** substituir template create-next-app por guia Task Hive (setup, env, `api:generate`, dev com backend) — a secção de testes já está no README.
-- [ ] **Acessibilidade manual:** revisar formulários, foco, `aria-*`, contraste no tema escuro.
-- [ ] **Variáveis de ambiente documentadas** em `.env.example` (prod vs dev).
+- [x] **README do frontend:** substituir template create-next-app por guia Task Hive (setup, env, `api:generate`, dev com backend) — a secção de testes já está no README.
+- [x] **Acessibilidade manual:** revisar formulários, foco, `aria-*`, contraste no tema escuro.
+- [x] **Variáveis de ambiente documentadas** em `.env.example` (prod vs dev).
 
 ---
 

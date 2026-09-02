@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { readApiErrorMessage } from "@/lib/api-error";
 import {
+  AUTH_FORM_ERROR_ID,
   FormError,
   FormField,
   PasswordField,
@@ -96,7 +97,12 @@ export function RegisterForm() {
   const pending = register.isPending;
 
   return (
-    <form className="mt-4 space-y-3 sm:mt-6 sm:space-y-4" onSubmit={onSubmit} noValidate>
+    <form
+      className="mt-4 space-y-3 sm:mt-6 sm:space-y-4"
+      onSubmit={onSubmit}
+      noValidate
+      aria-describedby={formError ? AUTH_FORM_ERROR_ID : undefined}
+    >
       <FormError message={formError} />
 
       <FormField
@@ -121,7 +127,7 @@ export function RegisterForm() {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="você@empresa.com.br"
         disabled={pending}
-        aria-invalid={!!formError}
+        aria-invalid={!!formError || undefined}
       />
 
       <div>

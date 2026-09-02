@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import { readApiErrorMessage } from "@/lib/api-error";
-import { FormError, FormField, SubmitButton } from "./form-field";
+import { AUTH_FORM_ERROR_ID, FormError, FormField, SubmitButton } from "./form-field";
 
 async function forgetPasswordRequest(email: string) {
   const res = await fetch("/api/bff/auth/forget-password", {
@@ -73,7 +73,12 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <form className="mt-4 space-y-3 sm:mt-6 sm:space-y-4" onSubmit={onSubmit} noValidate>
+    <form
+      className="mt-4 space-y-3 sm:mt-6 sm:space-y-4"
+      onSubmit={onSubmit}
+      noValidate
+      aria-describedby={formError ? AUTH_FORM_ERROR_ID : undefined}
+    >
       <FormError message={formError} />
 
       <FormField
@@ -86,7 +91,7 @@ export function ForgotPasswordForm() {
         onChange={(e) => setEmail(e.target.value)}
         placeholder="você@empresa.com.br"
         disabled={forget.isPending}
-        aria-invalid={!!formError}
+        aria-invalid={!!formError || undefined}
       />
 
       <SubmitButton pending={forget.isPending} pendingLabel="Enviando…">
