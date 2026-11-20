@@ -33,7 +33,7 @@ test.describe("admin utilizadores", () => {
     await expect(
       page.getByRole("heading", { name: "Administração", exact: true }),
     ).toBeVisible();
-    await expect(page.getByRole("link", { name: "Utilizadores 4" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Utilizadores 5" })).toBeVisible();
 
     await page
       .getByRole("navigation", { name: "Administração" })

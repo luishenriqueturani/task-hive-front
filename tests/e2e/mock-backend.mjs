@@ -180,6 +180,18 @@ const seed = {
 };
 registerUser(seed);
 
+const seedQuota = {
+  id: randomUUID(),
+  name: "Quota E2E",
+  email: "quota@taskhive.test",
+  password: "SenhaForte123!",
+  role: "CLIENT",
+  accountKind: "INDIVIDUAL",
+  document: null,
+  company: null,
+};
+registerUser(seedQuota);
+
 const seedColleague = {
   id: randomUUID(),
   name: "Colega E2E",
@@ -329,11 +341,19 @@ addBenefit(catalogPlans.get("plan-business"), "Quotas ilimitadas", null, 0);
 catalogCoupons.set("WELCOME10", {
   id: "coupon-welcome",
   code: "WELCOME10",
-  isActive: true,
+  type: "PERCENT",
+  value: 10,
   maxRedemptions: 50,
   redeemedCount: 0,
+  startsAt: null,
+  expiresAt: null,
+  isActive: true,
   applicablePlanIds: ["plan-starter", "plan-pro", "plan-business"],
+  redemptions: [],
 });
+
+/** @type {Map<string, object>} */
+const personalAccessTokens = new Map();
 
 function livePlans() {
   return [...catalogPlans.values()]
@@ -599,12 +619,82 @@ function inviteView(inv) {
 
 function sendPlanLimitGuests(res, project) {
   const usage = guestUsageFor(project);
-  return send(res, 402, {
-    code: "PLAN_LIMIT_GUESTS",
-    message: "Limite de convidados do plano atingido.",
-    limit: usage.limit,
-    used: usage.used,
-  });
+  return sendPlanLimit(
+    res,
+    "PLAN_LIMIT_GUESTS",
+    "Limite de convidados do plano atingido.",
+    usage.limit,
+    usage.used,
+  );
+}
+
+function sendPlanLimit(res, code, message, limit, used) {
+  return send(res, 402, { code, message, limit, used });
+}
+
+function planLimitsFor(user) {
+  const sub = liveSubscriptionFor(user);
+  const plan =
+    (sub ? catalogPlans.get(sub.planId) : null) ??
+    catalogPlans.get("plan-trial");
+  return {
+    maxProjects: plan?.maxProjects ?? 3,
+    maxApiKeys: plan?.maxApiKeys ?? 1,
+    maxStandaloneTasks: plan?.maxStandaloneTasks ?? 15,
+    maxProjectGuests: plan?.maxProjectGuests ?? 2,
+  };
+}
+
+function quotaReached(used, limit) {
+  return limit >= 0 && used >= limit;
+}
+
+function ownedProjectCount(user) {
+  return [...projects.values()].filter(
+    (project) => !project.deletedAt && project.userOwner.id === user.id,
+  ).length;
+}
+
+function patCount(user) {
+  return [...personalAccessTokens.values()].filter(
+    (token) => token.userId === user.id && !token.revokedAt,
+  ).length;
+}
+
+function adminCouponView(coupon) {
+  return {
+    id: coupon.id,
+    code: coupon.code,
+    type: coupon.type ?? "PERCENT",
+    value: coupon.value ?? 10,
+    maxRedemptions: coupon.maxRedemptions ?? null,
+    redeemedCount: coupon.redeemedCount ?? 0,
+    startsAt: coupon.startsAt ?? null,
+    expiresAt: coupon.expiresAt ?? null,
+    isActive: coupon.isActive !== false,
+    applicablePlans: (coupon.applicablePlanIds ?? [])
+      .map((id) => catalogPlans.get(id))
+      .filter(Boolean)
+      .map((plan) => ({ id: plan.id, slug: plan.slug, name: plan.name })),
+    redemptions: coupon.redemptions ?? [],
+  };
+}
+
+function couponById(id) {
+  return [...catalogCoupons.values()].find((coupon) => coupon.id === id);
+}
+
+function patView(token, includeSecret = false) {
+  const view = {
+    id: token.id,
+    name: token.name,
+    tokenPrefix: token.tokenPrefix,
+    expiresAt: token.expiresAt,
+    lastUsedAt: token.lastUsedAt,
+    createdAt: token.createdAt,
+  };
+  if (includeSecret) view.token = token.token;
+  return view;
 }
 
 function b64url(obj) {
@@ -894,7 +984,7 @@ const server = http.createServer(async (req, res) => {
         document: found.document ?? null,
         usage: {
           projects: owned.length,
-          apiKeys: 0,
+          apiKeys: patCount(found),
           standaloneTasks: userTodos(found).length,
           projectGuests: null,
         },
@@ -1074,6 +1164,147 @@ const server = http.createServer(async (req, res) => {
         plan: { id: plan.id, slug: plan.slug, name: plan.name },
         coupon: coupon ? { id: coupon.id, code: coupon.code } : null,
       });
+    }
+
+    if (path === "/admin/coupons") {
+      if (!requireAdmin(req, res)) return;
+      if (req.method === "GET") {
+        return send(
+          res,
+          200,
+          [...catalogCoupons.values()].map(adminCouponView),
+        );
+      }
+      if (req.method === "POST") {
+        const body = await readBody(req);
+        const code = String(body?.code ?? "")
+          .trim()
+          .toUpperCase();
+        if (code.length < 2) {
+          return send(res, 400, { message: "Código inválido." });
+        }
+        if (catalogCoupons.has(code)) {
+          return send(res, 409, { message: "Já existe um cupom com este código." });
+        }
+        const coupon = {
+          id: randomUUID(),
+          code,
+          type: body.type === "FIXED_CENTS" ? "FIXED_CENTS" : "PERCENT",
+          value: Number(body.value) || 1,
+          maxRedemptions: body.maxRedemptions ?? null,
+          redeemedCount: 0,
+          startsAt: body.startsAt ?? null,
+          expiresAt: body.expiresAt ?? null,
+          isActive: body.isActive !== false,
+          applicablePlanIds: Array.isArray(body.planIds) ? body.planIds : [],
+          redemptions: [],
+        };
+        catalogCoupons.set(code, coupon);
+        return send(res, 201, adminCouponView(coupon));
+      }
+    }
+
+    const adminCouponMatch = /^\/admin\/coupons\/([^/]+)$/.exec(path);
+    if (adminCouponMatch) {
+      if (!requireAdmin(req, res)) return;
+      const coupon = couponById(adminCouponMatch[1]);
+      if (!coupon) {
+        return send(res, 404, { message: "Cupom não encontrado." });
+      }
+      if (req.method === "GET") {
+        return send(res, 200, adminCouponView(coupon));
+      }
+      if (req.method === "PATCH") {
+        const body = await readBody(req);
+        if (body?.code) {
+          const next = String(body.code).trim().toUpperCase();
+          if (next !== coupon.code && catalogCoupons.has(next)) {
+            return send(res, 409, {
+              message: "Já existe um cupom com este código.",
+            });
+          }
+          catalogCoupons.delete(coupon.code);
+          coupon.code = next;
+          catalogCoupons.set(next, coupon);
+        }
+        if (body?.type) coupon.type = body.type;
+        if (body?.value !== undefined) coupon.value = body.value;
+        if (body?.maxRedemptions !== undefined) {
+          coupon.maxRedemptions = body.maxRedemptions;
+        }
+        if (body?.startsAt !== undefined) coupon.startsAt = body.startsAt;
+        if (body?.expiresAt !== undefined) coupon.expiresAt = body.expiresAt;
+        if (body?.isActive !== undefined) coupon.isActive = body.isActive;
+        if (body?.planIds) coupon.applicablePlanIds = body.planIds;
+        return send(res, 200, adminCouponView(coupon));
+      }
+      if (req.method === "DELETE") {
+        catalogCoupons.delete(coupon.code);
+        return send(res, 200, { id: coupon.id });
+      }
+    }
+
+    if (path === "/personal-access-tokens") {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      if (req.method === "GET") {
+        return send(
+          res,
+          200,
+          [...personalAccessTokens.values()]
+            .filter((token) => token.userId === user.id && !token.revokedAt)
+            .map((token) => patView(token)),
+        );
+      }
+      if (req.method === "POST") {
+        const limits = planLimitsFor(user);
+        const used = patCount(user);
+        if (!isAdminRole(user) && quotaReached(used, limits.maxApiKeys)) {
+          return sendPlanLimit(
+            res,
+            "PLAN_LIMIT_API_KEYS",
+            "Limite de chaves API do plano atingido.",
+            limits.maxApiKeys,
+            used,
+          );
+        }
+        const body = await readBody(req);
+        const name = String(body?.name ?? "").trim();
+        if (!name) {
+          return send(res, 422, { message: "should not be empty" });
+        }
+        const now = new Date();
+        const days = Number(body?.expiresInDays) || 90;
+        const id = randomUUID();
+        const secret = `th_pat_${id.replace(/-/g, "").slice(0, 24)}`;
+        const token = {
+          id,
+          userId: user.id,
+          name,
+          token: secret,
+          tokenPrefix: `${secret.slice(0, 10)}…`,
+          expiresAt: new Date(
+            now.getTime() + days * 24 * 60 * 60 * 1000,
+          ).toISOString(),
+          lastUsedAt: null,
+          createdAt: now.toISOString(),
+          revokedAt: null,
+        };
+        personalAccessTokens.set(id, token);
+        return send(res, 201, patView(token, true));
+      }
+    }
+
+    const patOne = /^\/personal-access-tokens\/([^/]+)$/.exec(path);
+    if (patOne && req.method === "DELETE") {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      const token = personalAccessTokens.get(patOne[1]);
+      if (!token || token.userId !== user.id) {
+        return send(res, 404, { message: "Token não encontrado." });
+      }
+      token.revokedAt = new Date().toISOString();
+      return send(res, 200, { success: true });
     }
 
     if (path === "/admin/plans") {
@@ -1256,6 +1487,22 @@ const server = http.createServer(async (req, res) => {
     if (path === "/to-do" && req.method === "POST") {
       const user = bearerUser(req);
       if (!user) return send(res, 401, { message: "Unauthorized" });
+      if (user.accountKind === "COMPANY") {
+        return send(res, 403, {
+          message: "Contas empresa não têm tarefas avulsas.",
+        });
+      }
+      const limits = planLimitsFor(user);
+      const used = userTodos(user).length;
+      if (!isAdminRole(user) && quotaReached(used, limits.maxStandaloneTasks)) {
+        return sendPlanLimit(
+          res,
+          "PLAN_LIMIT_TODOS",
+          "Limite de tarefas avulsas do plano atingido.",
+          limits.maxStandaloneTasks,
+          used,
+        );
+      }
       const body = await readBody(req);
       if (!body?.title?.trim() || body.title.trim().length < 3) {
         return send(res, 422, { message: "title minLength" });
@@ -1408,6 +1655,17 @@ const server = http.createServer(async (req, res) => {
     if (path === "/projects" && req.method === "POST") {
       const user = bearerUser(req);
       if (!user) return send(res, 401, { message: "Unauthorized" });
+      const limits = planLimitsFor(user);
+      const used = ownedProjectCount(user);
+      if (!isAdminRole(user) && quotaReached(used, limits.maxProjects)) {
+        return sendPlanLimit(
+          res,
+          "PLAN_LIMIT_PROJECTS",
+          "Limite de projetos do plano atingido.",
+          limits.maxProjects,
+          used,
+        );
+      }
       const body = await readBody(req);
       if (!body?.name?.trim()) {
         return send(res, 422, { message: "should not be empty" });

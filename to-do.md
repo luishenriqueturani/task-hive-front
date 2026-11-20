@@ -271,7 +271,7 @@ Pode avançar em paralelo com 8.1 (landing estática e coluna de to-dos). As dua
 
 ### 8.7 Fecho frontend (Onda 7)
 
-- [ ] **OpenAPI + Orval** alinhados com a API SaaS; mock E2E (`mock-backend.mjs`) com plans, invites, admin, support e códigos 402.
+- [x] **OpenAPI + Orval** alinhados com a API SaaS; mock E2E (`mock-backend.mjs`) com plans, invites, admin, support e códigos 402.
 - [ ] **Revisão:** IDOR não aplicável no cliente, mas confirmar que `CLIENT` não vê links/rotas admin; contas CNPJ sem qualquer superfície de to-do.
 
 ### Fora de âmbito desta fase (backlog)
