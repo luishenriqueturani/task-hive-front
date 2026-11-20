@@ -85,7 +85,7 @@ export function ProjectDetail({ projectId }: { projectId: string }) {
   const manageable = canManageProject(project, session.data);
 
   return (
-    <div className="relative left-1/2 flex min-h-0 w-screen max-w-[100vw] flex-1 -translate-x-1/2 flex-col px-6 lg:px-10 xl:px-14">
+    <div className="flex min-h-0 w-full flex-1 flex-col">
       <div className="shrink-0">
         <Link
           href="/projects"

@@ -16,26 +16,24 @@ export function DashboardPageContent({ user }: { user: SessionUser }) {
   const showTodos = canUseStandaloneTodos(user.accountKind);
 
   return (
-    <div className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2 px-4 sm:px-6">
-      <div className="mx-auto max-w-7xl">
-        <h1 className="text-2xl font-semibold tracking-tight text-app-text">
-          {firstName ? `Olá, ${firstName}!` : "Olá!"}
-        </h1>
-        <p className="mt-1 text-sm text-app-muted">
-          Este é o seu resumo no Task Hive.
-        </p>
+    <div className="mx-auto w-full max-w-7xl">
+      <h1 className="text-2xl font-semibold tracking-tight text-app-text">
+        {firstName ? `Olá, ${firstName}!` : "Olá!"}
+      </h1>
+      <p className="mt-1 text-sm text-app-muted">
+        Este é o seu resumo no Task Hive.
+      </p>
 
-        <div
-          data-testid="dashboard-home"
-          className={
-            showTodos
-              ? "mt-8 flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(17.5rem,20rem)_minmax(0,1fr)] lg:items-start lg:gap-8"
-              : "mt-8"
-          }
-        >
-          {showTodos ? <ToDosSection /> : null}
-          <ProjectsSection />
-        </div>
+      <div
+        data-testid="dashboard-home"
+        className={
+          showTodos
+            ? "mt-8 flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(17.5rem,20rem)_minmax(0,1fr)] lg:items-start lg:gap-8"
+            : "mt-8"
+        }
+      >
+        {showTodos ? <ToDosSection /> : null}
+        <ProjectsSection />
       </div>
     </div>
   );
