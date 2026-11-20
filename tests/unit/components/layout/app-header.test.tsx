@@ -21,6 +21,7 @@ describe("AppHeader", () => {
     expect(navLink("Painel")).toBeInTheDocument();
     expect(navLink("Projetos")).toBeInTheDocument();
     expect(navLink("Tarefas avulsas")).toBeInTheDocument();
+    expect(navLink("Suporte")).toBeInTheDocument();
   });
 
   it("esconde Tarefas avulsas para conta CNPJ", () => {

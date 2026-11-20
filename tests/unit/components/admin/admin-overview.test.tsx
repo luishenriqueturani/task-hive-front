@@ -36,5 +36,9 @@ describe("AdminOverview", () => {
       "href",
       "/admin/companies",
     );
+    expect(screen.getByRole("link", { name: /Tickets abertos/ })).toHaveAttribute(
+      "href",
+      "/admin/support",
+    );
   });
 });

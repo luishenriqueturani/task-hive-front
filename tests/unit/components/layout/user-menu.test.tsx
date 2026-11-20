@@ -30,6 +30,10 @@ describe("UserMenu", () => {
       "href",
       "/settings/plan",
     );
+    expect(screen.getByRole("link", { name: "Suporte" })).toHaveAttribute(
+      "href",
+      "/support",
+    );
     expect(screen.getByRole("link", { name: "Tokens de API" })).toHaveAttribute(
       "href",
       "/settings/api-tokens",

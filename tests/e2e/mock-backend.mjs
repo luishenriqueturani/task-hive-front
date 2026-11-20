@@ -227,6 +227,10 @@ const catalogPlans = new Map();
 const subscriptions = new Map();
 /** @type {Map<string, object>} */
 const catalogCoupons = new Map();
+/** @type {Map<string, object>} */
+const supportTickets = new Map();
+/** @type {Map<string, object>} */
+const supportMessages = new Map();
 
 function seedPlan(plan) {
   catalogPlans.set(plan.id, plan);
@@ -366,6 +370,45 @@ function adminPlanView(plan) {
 
 function isAdminRole(user) {
   return user.role === "ADMIN_GOD" || user.role === "ADMIN_COLLABORATOR";
+}
+
+function supportUserView(user) {
+  if (!user) return null;
+  return { id: user.id, name: user.name, email: user.email };
+}
+
+function supportTicketView(ticket) {
+  return {
+    id: ticket.id,
+    subject: ticket.subject,
+    status: ticket.status,
+    lastMessageAt: ticket.lastMessageAt,
+    createdAt: ticket.createdAt,
+    updatedAt: ticket.updatedAt,
+    createdBy: supportUserView(usersById.get(ticket.createdById)),
+    assignedTo: supportUserView(
+      ticket.assignedToId ? usersById.get(ticket.assignedToId) : null,
+    ),
+  };
+}
+
+function supportMessageView(message) {
+  return {
+    id: message.id,
+    body: message.body,
+    createdAt: message.createdAt,
+    author: supportUserView(usersById.get(message.authorId)),
+  };
+}
+
+function canAccessTicket(ticket, user) {
+  return ticket.createdById === user.id || isAdminRole(user);
+}
+
+function openSupportTicketCount() {
+  return [...supportTickets.values()].filter(
+    (ticket) => ticket.status !== "CLOSED",
+  ).length;
 }
 
 function liveSubscriptionFor(user) {
@@ -792,7 +835,7 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, {
         users: usersById.size,
         companies,
-        openTickets: 0,
+        openTickets: openSupportTicketCount(),
       });
     }
 
@@ -2072,6 +2115,160 @@ const server = http.createServer(async (req, res) => {
         }
         project.deletedAt = new Date().toISOString();
         return send(res, 200, projectForClient(project));
+      }
+    }
+
+    if (path === "/support/tickets") {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+
+      if (req.method === "GET") {
+        const q = String(url.searchParams.get("q") ?? "")
+          .trim()
+          .toLowerCase();
+        const status = url.searchParams.get("status") || "";
+        let rows = [...supportTickets.values()];
+        if (!isAdminRole(user)) {
+          rows = rows.filter((ticket) => ticket.createdById === user.id);
+        }
+        if (status) rows = rows.filter((ticket) => ticket.status === status);
+        if (q) {
+          rows = rows.filter((ticket) =>
+            ticket.subject.toLowerCase().includes(q),
+          );
+        }
+        rows.sort((a, b) =>
+          String(b.lastMessageAt).localeCompare(String(a.lastMessageAt)),
+        );
+        return send(res, 200, rows.map(supportTicketView));
+      }
+
+      if (req.method === "POST") {
+        const body = await readBody(req);
+        const subject = String(body?.subject ?? "").trim();
+        const message = String(body?.body ?? "").trim();
+        if (subject.length < 3) {
+          return send(res, 400, { message: "Assunto demasiado curto." });
+        }
+        const now = new Date().toISOString();
+        const ticket = {
+          id: randomUUID(),
+          subject,
+          status: message ? "PENDING_ADMIN" : "OPEN",
+          createdById: user.id,
+          assignedToId: null,
+          lastMessageAt: now,
+          createdAt: now,
+          updatedAt: now,
+        };
+        supportTickets.set(ticket.id, ticket);
+        if (message) {
+          const row = {
+            id: randomUUID(),
+            ticketId: ticket.id,
+            authorId: user.id,
+            body: message,
+            createdAt: now,
+          };
+          supportMessages.set(row.id, row);
+        }
+        return send(res, 201, supportTicketView(ticket));
+      }
+    }
+
+    const supportMessagesMatch =
+      /^\/support\/tickets\/([^/]+)\/messages$/.exec(path);
+    if (supportMessagesMatch) {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      const ticket = supportTickets.get(supportMessagesMatch[1]);
+      if (!ticket || !canAccessTicket(ticket, user)) {
+        return send(res, 404, { message: "Ticket não encontrado." });
+      }
+
+      if (req.method === "GET") {
+        const rows = [...supportMessages.values()]
+          .filter((item) => item.ticketId === ticket.id)
+          .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+        return send(res, 200, rows.map(supportMessageView));
+      }
+
+      if (req.method === "POST") {
+        if (ticket.status === "CLOSED") {
+          return send(res, 400, {
+            message: "Não é possível enviar mensagens num ticket encerrado.",
+          });
+        }
+        const body = await readBody(req);
+        const text = String(body?.body ?? "").trim();
+        if (!text) {
+          return send(res, 400, { message: "Mensagem vazia." });
+        }
+        const now = new Date().toISOString();
+        const row = {
+          id: randomUUID(),
+          ticketId: ticket.id,
+          authorId: user.id,
+          body: text,
+          createdAt: now,
+        };
+        supportMessages.set(row.id, row);
+        ticket.lastMessageAt = now;
+        ticket.updatedAt = now;
+        ticket.status =
+          ticket.createdById === user.id ? "PENDING_ADMIN" : "PENDING_USER";
+        return send(res, 201, supportMessageView(row));
+      }
+    }
+
+    const supportOneMatch = /^\/support\/tickets\/([^/]+)$/.exec(path);
+    if (supportOneMatch) {
+      const user = bearerUser(req);
+      if (!user) return send(res, 401, { message: "Unauthorized" });
+      const ticket = supportTickets.get(supportOneMatch[1]);
+      if (!ticket || !canAccessTicket(ticket, user)) {
+        return send(res, 404, { message: "Ticket não encontrado." });
+      }
+
+      if (req.method === "GET") {
+        return send(res, 200, supportTicketView(ticket));
+      }
+
+      if (req.method === "PATCH") {
+        const body = await readBody(req);
+        if (!body?.status && body?.assignToMe !== true) {
+          return send(res, 400, {
+            message: "Indique status ou assignToMe para actualizar o ticket.",
+          });
+        }
+        const isAuthor = ticket.createdById === user.id;
+        if (body?.assignToMe === true) {
+          if (!isAdminRole(user)) {
+            return send(res, 403, {
+              message: "Só o suporte pode assumir o ticket.",
+            });
+          }
+          ticket.assignedToId = user.id;
+        }
+        if (body?.status === "CLOSED") {
+          ticket.status = "CLOSED";
+        } else if (body?.status === "OPEN" && ticket.status === "CLOSED") {
+          if (!isAuthor) {
+            return send(res, 403, {
+              message: "Só o autor pode reabrir o ticket.",
+            });
+          }
+          ticket.status = "OPEN";
+        } else if (body?.status) {
+          if (!isAdminRole(user)) {
+            return send(res, 403, {
+              message: "Não pode alterar este estado.",
+            });
+          }
+          ticket.status = body.status;
+        }
+        ticket.updatedAt = new Date().toISOString();
+        return send(res, 200, supportTicketView(ticket));
       }
     }
 

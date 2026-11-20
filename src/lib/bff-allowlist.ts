@@ -25,6 +25,7 @@ export const BFF_ALLOWED_PREFIXES = [
   "invites",
   "plans",
   "admin",
+  "support",
 ] as const;
 
 export function isBffPathAllowed(joined: string): boolean {

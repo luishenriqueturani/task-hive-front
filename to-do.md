@@ -264,10 +264,10 @@ Pode avançar em paralelo com 8.1 (landing estática e coluna de to-dos). As dua
 
 ### 8.6 Chat de suporte (Onda 6)
 
-- [ ] **Cliente `/support`:** lista de tickets, “Nova conversa”, thread (HTTP para persistir + Socket.IO namespace `/support`, `joinTicket` / `support:message`). Entrada na nav ou no `UserMenu`.
-- [ ] **Admin `/admin/support`:** fila global, assumir ticket, mesmo componente de thread.
-- [ ] **Allowlist:** prefixo `support`.
-- [ ] **Testes:** unit/RTL da lista/thread; E2E smoke cliente abre ticket e admin responde (mock WS no padrão do timetrack).
+- [x] **Cliente `/support`:** lista de tickets, “Nova conversa”, thread (HTTP para persistir + Socket.IO namespace `/support`, `joinTicket` / `support:message`). Entrada na nav ou no `UserMenu`.
+- [x] **Admin `/admin/support`:** fila global, assumir ticket, mesmo componente de thread.
+- [x] **Allowlist:** prefixo `support`.
+- [x] **Testes:** unit/RTL da lista/thread; E2E smoke cliente abre ticket e admin responde (mock WS no padrão do timetrack).
 
 ### 8.7 Fecho frontend (Onda 7)
 

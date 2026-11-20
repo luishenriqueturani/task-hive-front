@@ -97,6 +97,20 @@ describe("proxy (guard de rotas)", () => {
     expect(res.status).toBe(200);
   });
 
+  it("redireciona /support sem sessão para login", () => {
+    const res = proxy(makeRequest("/support"));
+    expect(res.status).toBe(307);
+    const loc = new URL(res.headers.get("location")!);
+    expect(loc.pathname).toBe("/login");
+    expect(loc.searchParams.get("next")).toBe("/support");
+  });
+
+  it("permite /support com sessão", () => {
+    const res = proxy(makeRequest("/support", "fake-token"));
+    expect(res.headers.get("location")).toBeNull();
+    expect(res.status).toBe(200);
+  });
+
   it("permite /invite/:token sem sessão", () => {
     const res = proxy(makeRequest("/invite/th_inv_abc"));
     expect(res.headers.get("location")).toBeNull();

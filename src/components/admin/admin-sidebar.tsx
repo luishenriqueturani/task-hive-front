@@ -6,6 +6,7 @@ import {
   FaBuilding,
   FaGaugeHigh,
   FaHouse,
+  FaLifeRing,
   FaTags,
   FaTicket,
   FaUsers,
@@ -21,6 +22,7 @@ const ICONS = {
   "/admin/companies": FaBuilding,
   "/admin/plans": FaTags,
   "/admin/coupons": FaTicket,
+  "/admin/support": FaLifeRing,
   "/dashboard": FaHouse,
 } as const;
 

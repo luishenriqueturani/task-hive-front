@@ -24,7 +24,7 @@ const CARDS = [
   {
     key: "openTickets" as const,
     label: "Tickets abertos",
-    href: "/admin",
+    href: "/admin/support",
     icon: FaLifeRing,
   },
 ];
@@ -44,7 +44,7 @@ export function AdminOverview() {
         Administração
       </h1>
       <p className="mt-1 text-sm text-app-muted">
-        Resumo da plataforma. O chat de suporte entra numa onda posterior.
+        Resumo da plataforma: utilizadores, empresas e tickets abertos.
       </p>
 
       {stats.isPending ? (

@@ -15,6 +15,8 @@ describe("BFF allowlist (onda 1)", () => {
     expect(isBffPathAllowed("admin/users")).toBe(true);
     expect(isBffPathAllowed("admin/companies")).toBe(true);
     expect(isBffPathAllowed("admin/subscriptions")).toBe(true);
+    expect(isBffPathAllowed("support/tickets")).toBe(true);
+    expect(isBffPathAllowed("support/tickets/id/messages")).toBe(true);
   });
 
   it("continua a recusar paths fora da lista", () => {

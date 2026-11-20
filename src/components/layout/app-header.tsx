@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Painel", ready: true },
   { href: "/projects", label: "Projetos", ready: true },
   { href: "/to-do", label: "Tarefas avulsas", ready: true },
+  { href: "/support", label: "Suporte", ready: true },
 ];
 
 export function appNavItems(user: Pick<SessionUser, "accountKind">) {
