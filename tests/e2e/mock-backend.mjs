@@ -163,6 +163,7 @@ function placeTaskInStage(task, targetStageId, index) {
 }
 
 function registerUser(user) {
+  if (!user.createdAt) user.createdAt = new Date().toISOString();
   usersByEmail.set(user.email, user);
   usersById.set(user.id, user);
 }
@@ -203,8 +204,29 @@ const seedAdmin = {
 };
 registerUser(seedAdmin);
 
+const seedCompanyOwner = {
+  id: randomUUID(),
+  name: "Empresa E2E",
+  email: "empresa@taskhive.test",
+  password: "SenhaForte123!",
+  role: "CLIENT",
+  accountKind: "COMPANY",
+  document: "11444777000161",
+  company: {
+    id: randomUUID(),
+    legalName: "Empresa E2E Ltda",
+    tradeName: "Empresa E2E",
+    document: "11444777000161",
+  },
+};
+registerUser(seedCompanyOwner);
+
 /** @type {Map<string, object>} */
 const catalogPlans = new Map();
+/** @type {Map<string, object>} */
+const subscriptions = new Map();
+/** @type {Map<string, object>} */
+const catalogCoupons = new Map();
 
 function seedPlan(plan) {
   catalogPlans.set(plan.id, plan);
@@ -300,6 +322,15 @@ addBenefit(catalogPlans.get("plan-starter"), "Quadros Kanban", null, 0);
 addBenefit(catalogPlans.get("plan-pro"), "Tudo do Starter", null, 0);
 addBenefit(catalogPlans.get("plan-business"), "Quotas ilimitadas", null, 0);
 
+catalogCoupons.set("WELCOME10", {
+  id: "coupon-welcome",
+  code: "WELCOME10",
+  isActive: true,
+  maxRedemptions: 50,
+  redeemedCount: 0,
+  applicablePlanIds: ["plan-starter", "plan-pro", "plan-business"],
+});
+
 function livePlans() {
   return [...catalogPlans.values()]
     .filter((plan) => !plan.deletedAt)
@@ -335,6 +366,128 @@ function adminPlanView(plan) {
 
 function isAdminRole(user) {
   return user.role === "ADMIN_GOD" || user.role === "ADMIN_COLLABORATOR";
+}
+
+function liveSubscriptionFor(user) {
+  const live = [...subscriptions.values()].filter(
+    (sub) => sub.status === "TRIAL" || sub.status === "ACTIVE",
+  );
+  if (user.company?.id) {
+    const byCompany = live.find((sub) => sub.companyId === user.company.id);
+    if (byCompany) return byCompany;
+  }
+  return live.find((sub) => sub.userId === user.id) ?? null;
+}
+
+function trialPlanView() {
+  const trial = catalogPlans.get("plan-trial");
+  return {
+    id: trial?.id ?? null,
+    slug: "free-trial",
+    name: trial?.name ?? "Free Trial",
+    status: "TRIAL",
+  };
+}
+
+function adminUserPlan(user) {
+  const sub = liveSubscriptionFor(user);
+  if (!sub) return trialPlanView();
+  const plan = catalogPlans.get(sub.planId);
+  return {
+    id: plan?.id ?? sub.planId,
+    slug: plan?.slug ?? "unknown",
+    name: plan?.name ?? "Plano",
+    status: sub.status,
+  };
+}
+
+function adminUserListItem(user) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    accountKind: user.accountKind || "INDIVIDUAL",
+    createdAt: user.createdAt,
+    company: user.company
+      ? { id: user.company.id, legalName: user.company.legalName }
+      : null,
+    plan: adminUserPlan(user),
+  };
+}
+
+function userProjects(user) {
+  return [...projects.values()].filter(
+    (project) =>
+      !project.deletedAt &&
+      (project.userOwner.id === user.id ||
+        (user.company?.id && project.companyOwnerId === user.company.id)),
+  );
+}
+
+function allCompanies() {
+  const map = new Map();
+  for (const user of usersById.values()) {
+    if (user.company?.id && !map.has(user.company.id)) {
+      map.set(user.company.id, {
+        id: user.company.id,
+        name: user.company.legalName || user.name,
+        legalName: user.company.legalName,
+        tradeName: user.company.tradeName ?? null,
+        document: user.company.document ?? null,
+        createdAt: user.createdAt,
+        owner: user,
+      });
+    }
+  }
+  return [...map.values()];
+}
+
+function liveSubscriptionForCompany(companyId) {
+  return (
+    [...subscriptions.values()].find(
+      (sub) =>
+        sub.companyId === companyId &&
+        (sub.status === "TRIAL" || sub.status === "ACTIVE"),
+    ) ?? null
+  );
+}
+
+function adminCompanyPlan(company) {
+  const sub = liveSubscriptionForCompany(company.id);
+  if (!sub) return trialPlanView();
+  const plan = catalogPlans.get(sub.planId);
+  return {
+    id: plan?.id ?? sub.planId,
+    slug: plan?.slug ?? "unknown",
+    name: plan?.name ?? "Plano",
+    status: sub.status,
+  };
+}
+
+function adminCompanyListItem(company) {
+  return {
+    id: company.id,
+    name: company.name,
+    legalName: company.legalName,
+    tradeName: company.tradeName,
+    document: company.document,
+    createdAt: company.createdAt,
+    owner: company.owner
+      ? {
+          id: company.owner.id,
+          name: company.owner.name,
+          email: company.owner.email,
+        }
+      : null,
+    plan: adminCompanyPlan(company),
+  };
+}
+
+function userTodos(user) {
+  return [...todos.values()].filter(
+    (todo) => todo.userId === user.id && !todo.deletedAt,
+  );
 }
 
 function requireAdmin(req, res) {
@@ -629,6 +782,255 @@ const server = http.createServer(async (req, res) => {
         plan.benefits = plan.benefits.filter((item) => item.id !== benefitId);
         return send(res, 200, adminPlanView(plan));
       }
+    }
+
+    if (req.method === "GET" && path === "/admin/stats") {
+      if (!requireAdmin(req, res)) return;
+      const companies = [...usersById.values()].filter(
+        (item) => item.accountKind === "COMPANY" || item.company,
+      ).length;
+      return send(res, 200, {
+        users: usersById.size,
+        companies,
+        openTickets: 0,
+      });
+    }
+
+    if (req.method === "GET" && path === "/admin/users") {
+      if (!requireAdmin(req, res)) return;
+      const q = String(url.searchParams.get("q") ?? "")
+        .trim()
+        .toLowerCase();
+      const accountKind = url.searchParams.get("accountKind") || "";
+      const planSlug = url.searchParams.get("planSlug") || "";
+      const role = url.searchParams.get("role") || "";
+      const page = Math.max(1, Number(url.searchParams.get("page") || 1) || 1);
+      const pageSize = Math.min(
+        50,
+        Math.max(1, Number(url.searchParams.get("pageSize") || 20) || 20),
+      );
+      let rows = [...usersById.values()];
+      if (q) {
+        rows = rows.filter(
+          (item) =>
+            String(item.name || "")
+              .toLowerCase()
+              .includes(q) || item.email.toLowerCase().includes(q),
+        );
+      }
+      if (accountKind) {
+        rows = rows.filter((item) => item.accountKind === accountKind);
+      }
+      if (role) {
+        rows = rows.filter((item) => item.role === role);
+      }
+      if (planSlug) {
+        rows = rows.filter((item) => adminUserPlan(item).slug === planSlug);
+      }
+      rows.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+      const total = rows.length;
+      const items = rows
+        .slice((page - 1) * pageSize, page * pageSize)
+        .map(adminUserListItem);
+      return send(res, 200, { items, total, page, pageSize });
+    }
+
+    const adminUserMatch = /^\/admin\/users\/([^/]+)$/.exec(path);
+    if (req.method === "GET" && adminUserMatch) {
+      if (!requireAdmin(req, res)) return;
+      const found = usersById.get(adminUserMatch[1]);
+      if (!found) {
+        return send(res, 404, { message: "Utilizador não encontrado." });
+      }
+      const plan = adminUserPlan(found);
+      const catalog = catalogPlans.get(plan.id) ?? catalogPlans.get("plan-trial");
+      const owned = userProjects(found);
+      const sub = liveSubscriptionFor(found);
+      return send(res, 200, {
+        ...adminUserListItem(found),
+        document: found.document ?? null,
+        usage: {
+          projects: owned.length,
+          apiKeys: 0,
+          standaloneTasks: userTodos(found).length,
+          projectGuests: null,
+        },
+        limits: {
+          maxProjects: catalog?.maxProjects ?? 3,
+          maxApiKeys: catalog?.maxApiKeys ?? 1,
+          maxStandaloneTasks: catalog?.maxStandaloneTasks ?? 15,
+          maxProjectGuests: catalog?.maxProjectGuests ?? 2,
+        },
+        projects: owned.map((project) => ({
+          id: project.id,
+          name: project.name,
+          createdAt: project.createdAt,
+        })),
+        subscription: sub
+          ? {
+              id: sub.id,
+              status: sub.status,
+              startsAt: sub.startsAt,
+              endsAt: sub.endsAt,
+              coupon: sub.couponCode
+                ? { id: sub.couponCode, code: sub.couponCode }
+                : null,
+              plan,
+            }
+          : null,
+      });
+    }
+
+    if (req.method === "GET" && path === "/admin/companies") {
+      if (!requireAdmin(req, res)) return;
+      const q = String(url.searchParams.get("q") ?? "")
+        .trim()
+        .toLowerCase();
+      const documentDigits = String(url.searchParams.get("document") ?? "").replace(
+        /\D/g,
+        "",
+      );
+      const planSlug = url.searchParams.get("planSlug") || "";
+      const page = Math.max(1, Number(url.searchParams.get("page") || 1) || 1);
+      const pageSize = Math.min(
+        50,
+        Math.max(1, Number(url.searchParams.get("pageSize") || 20) || 20),
+      );
+      let rows = allCompanies();
+      if (q) {
+        rows = rows.filter(
+          (item) =>
+            String(item.name || "")
+              .toLowerCase()
+              .includes(q) ||
+            String(item.legalName || "")
+              .toLowerCase()
+              .includes(q) ||
+            String(item.tradeName || "")
+              .toLowerCase()
+              .includes(q),
+        );
+      }
+      if (documentDigits) {
+        rows = rows.filter((item) =>
+          String(item.document || "").replace(/\D/g, "").includes(documentDigits),
+        );
+      }
+      if (planSlug) {
+        rows = rows.filter((item) => adminCompanyPlan(item).slug === planSlug);
+      }
+      rows.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+      const total = rows.length;
+      const items = rows
+        .slice((page - 1) * pageSize, page * pageSize)
+        .map(adminCompanyListItem);
+      return send(res, 200, { items, total, page, pageSize });
+    }
+
+    const adminCompanyMatch = /^\/admin\/companies\/([^/]+)$/.exec(path);
+    if (req.method === "GET" && adminCompanyMatch) {
+      if (!requireAdmin(req, res)) return;
+      const found = allCompanies().find(
+        (item) => item.id === adminCompanyMatch[1],
+      );
+      if (!found) {
+        return send(res, 404, { message: "Empresa não encontrada." });
+      }
+      const plan = adminCompanyPlan(found);
+      const catalog = catalogPlans.get(plan.id) ?? catalogPlans.get("plan-trial");
+      const owned = [...projects.values()].filter(
+        (project) =>
+          !project.deletedAt && project.companyOwnerId === found.id,
+      );
+      const sub = liveSubscriptionForCompany(found.id);
+      return send(res, 200, {
+        ...adminCompanyListItem(found),
+        usage: { projects: owned.length },
+        limits: {
+          maxProjects: catalog?.maxProjects ?? 3,
+          maxApiKeys: catalog?.maxApiKeys ?? 1,
+          maxStandaloneTasks: catalog?.maxStandaloneTasks ?? 15,
+          maxProjectGuests: catalog?.maxProjectGuests ?? 2,
+        },
+        projects: owned.map((project) => ({
+          id: project.id,
+          name: project.name,
+          createdAt: project.createdAt,
+        })),
+        subscription: sub
+          ? {
+              id: sub.id,
+              status: sub.status,
+              startsAt: sub.startsAt,
+              endsAt: sub.endsAt,
+              coupon: sub.couponCode
+                ? { id: sub.couponCode, code: sub.couponCode }
+                : null,
+              plan,
+            }
+          : null,
+      });
+    }
+
+    if (req.method === "POST" && path === "/admin/subscriptions") {
+      const actor = requireAdmin(req, res);
+      if (!actor) return;
+      const body = await readBody(req);
+      if (Boolean(body?.userId) === Boolean(body?.companyId)) {
+        return send(res, 400, {
+          message: "Indique userId ou companyId, não ambos.",
+        });
+      }
+      const plan = catalogPlans.get(body.planId);
+      if (!plan || plan.deletedAt) {
+        return send(res, 404, { message: "Plano não encontrado." });
+      }
+      let coupon = null;
+      if (body.couponCode) {
+        coupon = catalogCoupons.get(String(body.couponCode).toUpperCase());
+        if (!coupon || !coupon.isActive) {
+          return send(res, 404, { message: "Cupom não encontrado." });
+        }
+        if (plan.isSystem) {
+          return send(res, 400, {
+            message: "Cupons não se aplicam ao plano de sistema (trial).",
+          });
+        }
+      }
+      const targetUser = body.userId ? usersById.get(body.userId) : null;
+      if (body.userId && !targetUser) {
+        return send(res, 404, { message: "Utilizador não encontrado." });
+      }
+      const companyId =
+        body.companyId ||
+        (targetUser?.accountKind === "COMPANY" ? targetUser.company?.id : null);
+      const userId = companyId ? null : targetUser?.id;
+      for (const sub of subscriptions.values()) {
+        const match = companyId
+          ? sub.companyId === companyId
+          : sub.userId === userId;
+        if (match && (sub.status === "TRIAL" || sub.status === "ACTIVE")) {
+          sub.status = "CANCELED";
+        }
+      }
+      const created = {
+        id: randomUUID(),
+        status: plan.isSystem ? "TRIAL" : "ACTIVE",
+        planId: plan.id,
+        userId,
+        companyId: companyId ?? null,
+        couponCode: coupon?.code ?? null,
+        startsAt: new Date().toISOString(),
+        endsAt: null,
+      };
+      subscriptions.set(created.id, created);
+      if (coupon) coupon.redeemedCount += 1;
+      return send(res, 200, {
+        id: created.id,
+        status: created.status,
+        plan: { id: plan.id, slug: plan.slug, name: plan.name },
+        coupon: coupon ? { id: coupon.id, code: coupon.code } : null,
+      });
     }
 
     if (path === "/admin/plans") {
@@ -977,6 +1379,7 @@ const server = http.createServer(async (req, res) => {
         updatedAt: now,
         deletedAt: null,
         userOwner: publicUser(user),
+        companyOwnerId: user.company?.id ?? null,
         participants: [],
       };
       projects.set(id, project);

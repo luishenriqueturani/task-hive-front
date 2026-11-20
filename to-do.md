@@ -254,13 +254,13 @@ Pode avançar em paralelo com 8.1 (landing estática e coluna de to-dos). As dua
 
 ### 8.5 Painel admin — utilizadores e empresas (Onda 5)
 
-- [ ] **Shell admin:** grupo `(admin)`, `src/app/(admin)/layout.tsx` — nav lateral (desktop) + header próprios. `requireAdmin()`; `CLIENT` → `notFound()` (não revelar `/admin`). Matcher `/admin` no `proxy.ts`.
+- [x] **Shell admin:** grupo `(admin)`, `src/app/(admin)/layout.tsx` — nav lateral (desktop) + header próprios. `requireAdmin()`; `CLIENT` → `notFound()` (não revelar `/admin`). Matcher `/admin` no `proxy.ts`.
 - [x] **Link Administração** no `UserMenu` quando `ADMIN_GOD` ou `ADMIN_COLLABORATOR`.
-- [ ] **`/admin`:** resumo (nº users, empresas, tickets abertos).
-- [ ] **`/admin/users`:** tabela paginada, busca, filtros (`accountKind`, `planSlug`, `role`), detalhe (usage + projectos), atribuir plano (+ cupom opcional).
-- [ ] **`/admin/companies`:** tabela paginada, busca, filtros, detalhe (owner, projectos, plano), atribuir plano. **Não** usar `GET /users` / `GET /companies` sem paginação; usar `/admin/users` e `/admin/companies`.
-- [ ] **Settings no shell:** mover `/settings/api-tokens` (e `/settings/plan`) para o grupo autenticado com `AppHeader`, se o layout for tocado nesta onda.
-- [ ] **Testes:** unit/RTL das tabelas e do guard de role; E2E `CLIENT` em `/admin` → 404.
+- [x] **`/admin`:** resumo (nº users, empresas, tickets abertos).
+- [x] **`/admin/users`:** tabela paginada, busca, filtros (`accountKind`, `planSlug`, `role`), detalhe (usage + projectos), atribuir plano (+ cupom opcional).
+- [x] **`/admin/companies`:** tabela paginada, busca, filtros, detalhe (owner, projectos, plano), atribuir plano. **Não** usar `GET /users` / `GET /companies` sem paginação; usar `/admin/users` e `/admin/companies`.
+- [x] **Settings no shell:** mover `/settings/api-tokens` (e `/settings/plan`) para o grupo autenticado com `AppHeader`, se o layout for tocado nesta onda.
+- [x] **Testes:** unit/RTL das tabelas e do guard de role; E2E `CLIENT` em `/admin` → 404.
 
 ### 8.6 Chat de suporte (Onda 6)
 

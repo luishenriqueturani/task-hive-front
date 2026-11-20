@@ -11,6 +11,10 @@ describe("BFF allowlist (onda 1)", () => {
     expect(isBffPathAllowed("plans")).toBe(true);
     expect(isBffPathAllowed("admin/plans")).toBe(true);
     expect(isBffPathAllowed("admin/plans/id/benefits")).toBe(true);
+    expect(isBffPathAllowed("admin/stats")).toBe(true);
+    expect(isBffPathAllowed("admin/users")).toBe(true);
+    expect(isBffPathAllowed("admin/companies")).toBe(true);
+    expect(isBffPathAllowed("admin/subscriptions")).toBe(true);
   });
 
   it("continua a recusar paths fora da lista", () => {

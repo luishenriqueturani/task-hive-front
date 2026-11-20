@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { AdminOverview } from "@/components/admin/admin-overview";
 
 export const metadata: Metadata = {
   title: "Administração · Task Hive",
+  description: "Resumo de utilizadores, empresas e tickets.",
 };
 
 export default function AdminIndexPage() {
-  redirect("/admin/plans");
+  return <AdminOverview />;
 }

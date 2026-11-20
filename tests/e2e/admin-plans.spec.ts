@@ -31,6 +31,11 @@ test.describe("admin planos", () => {
     await page.getByRole("button", { name: "Abrir perfil" }).click();
     await expect(page.getByRole("link", { name: "Administração" })).toBeVisible();
     await page.getByRole("link", { name: "Administração" }).click();
+    await expect(page).toHaveURL(/\/admin$/);
+    await page
+      .getByRole("navigation", { name: "Administração" })
+      .getByRole("link", { name: "Planos" })
+      .click();
     await expect(page).toHaveURL(/\/admin\/plans/);
 
     await expect(

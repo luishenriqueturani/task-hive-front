@@ -50,7 +50,7 @@ describe("UserMenu", () => {
     await ue.click(screen.getByRole("button", { name: "Abrir perfil" }));
     expect(screen.getByRole("link", { name: "Administração" })).toHaveAttribute(
       "href",
-      "/admin/plans",
+      "/admin",
     );
   });
 

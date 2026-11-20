@@ -17,7 +17,7 @@ export default async function AppLayout({
     <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden bg-app-bg">
       <AmbientBackground />
       <AppHeader user={user} />
-      <main className="relative z-10 mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col px-4 py-6 sm:px-6 sm:py-8">
+      <main className="relative z-10 mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col overflow-y-auto px-4 py-6 sm:px-6 sm:py-8">
         {children}
       </main>
     </div>

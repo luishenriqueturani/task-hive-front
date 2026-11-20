@@ -137,7 +137,7 @@ export function UserMenu({ user }: { user: SessionUser }) {
             <div className="mt-auto space-y-4 pt-6">
               {isAdminRole(user.role) ? (
                 <Link
-                  href="/admin/plans"
+                  href="/admin"
                   onClick={close}
                   className="block rounded-lg border border-app-border/70 px-3 py-2 text-sm text-app-text transition hover:bg-app-surface-elevated/90"
                 >
