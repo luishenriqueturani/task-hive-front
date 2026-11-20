@@ -63,6 +63,19 @@ describe("LandingPage", () => {
     expect(screen.queryByRole("link", { name: "Entrar" })).not.toBeInTheDocument();
   });
 
+  it("cai no catálogo estático se GET /plans falhar", async () => {
+    renderWithAppProviders(<LandingPage signedIn={false} />);
+
+    expect(screen.getByRole("heading", { name: /^Starter$/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /^Pro$/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /^Business$/ })).toBeInTheDocument();
+    expect(screen.getByText(/Projectos: 5/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(vi.mocked(fetch)).toHaveBeenCalled();
+    });
+    expect(screen.getByRole("heading", { name: /^Starter$/ })).toBeInTheDocument();
+  });
+
   it("esconde tarefas avulsas no toggle Empresas", async () => {
     const user = userEvent.setup();
     renderWithAppProviders(<LandingPage signedIn={false} />);

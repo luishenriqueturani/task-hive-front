@@ -250,7 +250,7 @@ Pode avançar em paralelo com 8.1 (landing estática e coluna de to-dos). As dua
 - [x] **Admin — planos:** `/admin/plans` — lista + editor de quotas (`maxProjects`, `maxApiKeys`, `maxStandaloneTasks`, `maxProjectGuests`) e CRUD da área de benefícios (`PlanBenefit`). Não apagar plano `isSystem` (`free-trial`).
 - [x] **Admin — cupons:** `/admin/coupons` — CRUD (código, percent/fixo, datas, tecto de usos, planos aplicáveis) e redemptions.
 - [x] **Allowlist:** prefixos `plans` e `admin`.
-- [ ] **Testes:** unit/RTL dos botões no limite e dos cards da landing; E2E admin planos (role admin).
+- [x] **Testes:** unit/RTL dos botões no limite e dos cards da landing; E2E admin planos (role admin).
 
 ### 8.5 Painel admin — utilizadores e empresas (Onda 5)
 

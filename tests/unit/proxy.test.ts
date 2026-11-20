@@ -83,6 +83,20 @@ describe("proxy (guard de rotas)", () => {
     expect(res.headers.get("location")).toBeNull();
   });
 
+  it("redireciona /admin sem sessão para login", () => {
+    const res = proxy(makeRequest("/admin/plans"));
+    expect(res.status).toBe(307);
+    const loc = new URL(res.headers.get("location")!);
+    expect(loc.pathname).toBe("/login");
+    expect(loc.searchParams.get("next")).toBe("/admin/plans");
+  });
+
+  it("permite /admin com sessão (o 404 de CLIENT fica no layout)", () => {
+    const res = proxy(makeRequest("/admin/plans", "fake-token"));
+    expect(res.headers.get("location")).toBeNull();
+    expect(res.status).toBe(200);
+  });
+
   it("permite /invite/:token sem sessão", () => {
     const res = proxy(makeRequest("/invite/th_inv_abc"));
     expect(res.headers.get("location")).toBeNull();

@@ -6,6 +6,7 @@ describe("safeNextPath", () => {
     expect(safeNextPath("/invite/th_inv_abc")).toBe("/invite/th_inv_abc");
     expect(safeNextPath("/projects/abc")).toBe("/projects/abc");
     expect(safeNextPath("/settings/api-tokens")).toBe("/settings/api-tokens");
+    expect(safeNextPath("/admin/plans")).toBe("/admin/plans");
   });
 
   it("rejeita URLs externas e open redirects", () => {

@@ -6,6 +6,7 @@ const ALLOWED_NEXT_PREFIXES = [
   "/companies",
   "/settings",
   "/invite",
+  "/admin",
 ] as const;
 
 /**

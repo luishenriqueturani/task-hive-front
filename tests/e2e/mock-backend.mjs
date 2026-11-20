@@ -191,6 +191,165 @@ const seedColleague = {
 };
 registerUser(seedColleague);
 
+const seedAdmin = {
+  id: randomUUID(),
+  name: "Admin E2E",
+  email: "admin@taskhive.test",
+  password: "SenhaForte123!",
+  role: "ADMIN_GOD",
+  accountKind: "INDIVIDUAL",
+  document: null,
+  company: null,
+};
+registerUser(seedAdmin);
+
+/** @type {Map<string, object>} */
+const catalogPlans = new Map();
+
+function seedPlan(plan) {
+  catalogPlans.set(plan.id, plan);
+}
+
+function addBenefit(plan, title, body, sortOrder) {
+  plan.benefits.push({
+    id: randomUUID(),
+    title,
+    body,
+    icon: null,
+    sortOrder,
+  });
+}
+
+seedPlan({
+  id: "plan-trial",
+  slug: "free-trial",
+  name: "Free Trial",
+  description: "Trial técnico — não aparece na landing.",
+  accountKind: "BOTH",
+  interval: "MONTHLY",
+  priceCents: 0,
+  currency: "BRL",
+  isActive: true,
+  isSystem: true,
+  sortOrder: 0,
+  maxProjects: 3,
+  maxApiKeys: 1,
+  maxStandaloneTasks: 15,
+  maxProjectGuests: 2,
+  deletedAt: null,
+  benefits: [],
+});
+seedPlan({
+  id: "plan-starter",
+  slug: "starter",
+  name: "Starter",
+  description: "Para começar com Kanban, to-do e chaves de API.",
+  accountKind: "BOTH",
+  interval: "MONTHLY",
+  priceCents: 2900,
+  currency: "BRL",
+  isActive: true,
+  isSystem: false,
+  sortOrder: 1,
+  maxProjects: 5,
+  maxApiKeys: 2,
+  maxStandaloneTasks: 30,
+  maxProjectGuests: 3,
+  deletedAt: null,
+  benefits: [],
+});
+seedPlan({
+  id: "plan-pro",
+  slug: "pro",
+  name: "Pro",
+  description: "Mais projectos, convidados e chaves de API.",
+  accountKind: "BOTH",
+  interval: "MONTHLY",
+  priceCents: 7900,
+  currency: "BRL",
+  isActive: true,
+  isSystem: false,
+  sortOrder: 2,
+  maxProjects: 20,
+  maxApiKeys: 10,
+  maxStandaloneTasks: 200,
+  maxProjectGuests: 15,
+  deletedAt: null,
+  benefits: [],
+});
+seedPlan({
+  id: "plan-business",
+  slug: "business",
+  name: "Business",
+  description: "Quotas ilimitadas e suporte prioritário.",
+  accountKind: "BOTH",
+  interval: "MONTHLY",
+  priceCents: 19900,
+  currency: "BRL",
+  isActive: true,
+  isSystem: false,
+  sortOrder: 3,
+  maxProjects: -1,
+  maxApiKeys: -1,
+  maxStandaloneTasks: -1,
+  maxProjectGuests: -1,
+  deletedAt: null,
+  benefits: [],
+});
+addBenefit(catalogPlans.get("plan-starter"), "Quadros Kanban", null, 0);
+addBenefit(catalogPlans.get("plan-pro"), "Tudo do Starter", null, 0);
+addBenefit(catalogPlans.get("plan-business"), "Quotas ilimitadas", null, 0);
+
+function livePlans() {
+  return [...catalogPlans.values()]
+    .filter((plan) => !plan.deletedAt)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+function publicPlanView(plan) {
+  return {
+    id: plan.id,
+    slug: plan.slug,
+    name: plan.name,
+    description: plan.description,
+    accountKind: plan.accountKind,
+    interval: plan.interval,
+    priceCents: plan.priceCents,
+    currency: plan.currency,
+    sortOrder: plan.sortOrder,
+    maxProjects: plan.maxProjects,
+    maxApiKeys: plan.maxApiKeys,
+    maxStandaloneTasks: plan.maxStandaloneTasks,
+    maxProjectGuests: plan.maxProjectGuests,
+    benefits: [...plan.benefits].sort((a, b) => a.sortOrder - b.sortOrder),
+  };
+}
+
+function adminPlanView(plan) {
+  return {
+    ...publicPlanView(plan),
+    isActive: plan.isActive,
+    isSystem: plan.isSystem,
+  };
+}
+
+function isAdminRole(user) {
+  return user.role === "ADMIN_GOD" || user.role === "ADMIN_COLLABORATOR";
+}
+
+function requireAdmin(req, res) {
+  const user = bearerUser(req);
+  if (!user) {
+    send(res, 401, { message: "Unauthorized" });
+    return null;
+  }
+  if (!isAdminRole(user)) {
+    send(res, 403, { message: "Acesso negado: permissão insuficiente" });
+    return null;
+  }
+  return user;
+}
+
 function participantView(user) {
   return {
     id: user.id,
@@ -420,44 +579,105 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && path === "/plans") {
-      return send(res, 200, [
-        {
-          slug: "starter",
-          name: "Starter",
-          accountKind: "BOTH",
-          priceCents: 2900,
-          currency: "BRL",
-          maxProjects: 5,
-          maxApiKeys: 2,
-          maxStandaloneTasks: 30,
-          maxProjectGuests: 3,
-          benefits: [{ title: "Quadros Kanban" }],
-        },
-        {
-          slug: "pro",
-          name: "Pro",
-          accountKind: "BOTH",
-          priceCents: 7900,
-          currency: "BRL",
-          maxProjects: 20,
-          maxApiKeys: 10,
-          maxStandaloneTasks: 200,
-          maxProjectGuests: 15,
-          benefits: [{ title: "Tudo do Starter" }],
-        },
-        {
-          slug: "business",
-          name: "Business",
-          accountKind: "BOTH",
-          priceCents: 19900,
-          currency: "BRL",
-          maxProjects: -1,
-          maxApiKeys: -1,
-          maxStandaloneTasks: -1,
-          maxProjectGuests: -1,
-          benefits: [{ title: "Quotas ilimitadas" }],
-        },
-      ]);
+      return send(
+        res,
+        200,
+        livePlans()
+          .filter((plan) => plan.isActive && !plan.isSystem)
+          .map(publicPlanView),
+      );
+    }
+
+    const adminBenefitMatch =
+      /^\/admin\/plans\/([^/]+)\/benefits(?:\/([^/]+))?$/.exec(path);
+    if (adminBenefitMatch) {
+      if (!requireAdmin(req, res)) return;
+      const plan = catalogPlans.get(adminBenefitMatch[1]);
+      if (!plan || plan.deletedAt) {
+        return send(res, 404, { message: "Plano não encontrado." });
+      }
+      const benefitId = adminBenefitMatch[2];
+
+      if (req.method === "POST" && !benefitId) {
+        const body = await readBody(req);
+        if (!body?.title?.trim()) {
+          return send(res, 422, { message: "should not be empty" });
+        }
+        addBenefit(
+          plan,
+          body.title.trim(),
+          body.body ?? null,
+          body.sortOrder ?? plan.benefits.length,
+        );
+        return send(res, 201, adminPlanView(plan));
+      }
+
+      const benefit = plan.benefits.find((item) => item.id === benefitId);
+      if (!benefit) {
+        return send(res, 404, { message: "Benefício não encontrado." });
+      }
+
+      if (req.method === "PATCH") {
+        const body = await readBody(req);
+        if (body?.title !== undefined) benefit.title = body.title;
+        if (body?.body !== undefined) benefit.body = body.body ?? null;
+        if (body?.sortOrder !== undefined) benefit.sortOrder = body.sortOrder;
+        return send(res, 200, adminPlanView(plan));
+      }
+
+      if (req.method === "DELETE") {
+        plan.benefits = plan.benefits.filter((item) => item.id !== benefitId);
+        return send(res, 200, adminPlanView(plan));
+      }
+    }
+
+    if (path === "/admin/plans") {
+      if (!requireAdmin(req, res)) return;
+      if (req.method === "GET") {
+        return send(res, 200, livePlans().map(adminPlanView));
+      }
+    }
+
+    const adminPlanMatch = /^\/admin\/plans\/([^/]+)$/.exec(path);
+    if (adminPlanMatch) {
+      if (!requireAdmin(req, res)) return;
+      const plan = catalogPlans.get(adminPlanMatch[1]);
+      if (!plan || plan.deletedAt) {
+        return send(res, 404, { message: "Plano não encontrado." });
+      }
+
+      if (req.method === "GET") {
+        return send(res, 200, adminPlanView(plan));
+      }
+
+      if (req.method === "PATCH") {
+        const body = await readBody(req);
+        const assignable = [
+          "name",
+          "description",
+          "priceCents",
+          "isActive",
+          "sortOrder",
+          "maxProjects",
+          "maxApiKeys",
+          "maxStandaloneTasks",
+          "maxProjectGuests",
+        ];
+        for (const key of assignable) {
+          if (body?.[key] !== undefined) plan[key] = body[key];
+        }
+        return send(res, 200, adminPlanView(plan));
+      }
+
+      if (req.method === "DELETE") {
+        if (plan.isSystem) {
+          return send(res, 403, {
+            message: "Não é possível apagar um plano de sistema.",
+          });
+        }
+        plan.deletedAt = new Date().toISOString();
+        return send(res, 200, { id: plan.id });
+      }
     }
 
     if (req.method === "POST" && path === "/auth/login") {
